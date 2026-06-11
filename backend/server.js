@@ -23,6 +23,7 @@ const SUPPORT_DB_PATH = IS_VERCEL_RUNTIME ? path.join("/tmp", "etherpump-support
 const COMMUNITY_DB_PATH = IS_VERCEL_RUNTIME ? path.join("/tmp", "etherpump-community.json") : path.join(ROOT, "cache", "community.json");
 const GO_DB_PATH = IS_VERCEL_RUNTIME ? path.join("/tmp", "etherpump-go.json") : path.join(ROOT, "cache", "go.json");
 const ALPHA_DB_PATH = IS_VERCEL_RUNTIME ? path.join("/tmp", "etherpump-alpha.json") : path.join(ROOT, "cache", "alpha.json");
+const AGENTS_DB_PATH = IS_VERCEL_RUNTIME ? path.join("/tmp", "getmeajob-agents.json") : path.join(ROOT, "cache", "agents.json");
 const PUMPFUN_METADATA_DB_PATH = IS_VERCEL_RUNTIME ? path.join("/tmp", "etherpump-pumpfun-metadata.json") : path.join(ROOT, "cache", "pumpfun-metadata.json");
 const PUMPFUN_LAUNCHES_DB_PATH = IS_VERCEL_RUNTIME ? path.join("/tmp", "etherpump-pumpfun-launches.json") : path.join(ROOT, "cache", "pumpfun-launches.json");
 const SUPABASE_URL = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
@@ -35,6 +36,7 @@ const SUPABASE_SCHEMA = String(process.env.SUPABASE_SCHEMA || "public").trim();
 const SUPABASE_STORAGE_BUCKET = String(process.env.SUPABASE_STORAGE_BUCKET || "uploads").trim();
 const SUPABASE_COMMUNITY_OBJECT = String(process.env.SUPABASE_COMMUNITY_OBJECT || "community/community.json").trim();
 const SUPABASE_ALPHA_OBJECT = String(process.env.SUPABASE_ALPHA_OBJECT || "alpha/alpha.json").trim();
+const SUPABASE_AGENTS_OBJECT = String(process.env.SUPABASE_AGENTS_OBJECT || "agents/agents.json").trim();
 const SUPABASE_PUMPFUN_LAUNCHES_OBJECT = String(process.env.SUPABASE_PUMPFUN_LAUNCHES_OBJECT || "pumpfun/launches.json").trim();
 const PROFILE_IMAGE_URI_MAX_LENGTH = 2 * 1024 * 1024;
 const STRICT_PROFILE_STORE = String(process.env.STRICT_PROFILE_STORE || "0") === "1";
@@ -269,6 +271,8 @@ let communityDbCache = null;
 let communityDbRemoteLoaded = false;
 let goDbCache = null;
 let alphaDbCache = null;
+let agentsDbCache = null;
+let agentsDbRemoteLoaded = false;
 let alphaDbRemoteLoaded = false;
 let pumpFunLaunchesDbCache = null;
 let pumpFunLaunchesRemoteLoaded = false;
@@ -1766,6 +1770,170 @@ function alphaStats(store = readAlphaDb()) {
       })
       .slice(0, 5)
       .map((tip) => alphaPublicTip(tip))
+  };
+}
+
+
+function emptyAgentsStore() {
+  return { agents: [], posts: [] };
+}
+
+function normalizeAgentOwner(value = "") {
+  const raw = sanitizeAlphaText(value || "", 90);
+  return normalizeSolanaAddress(raw) || normalizeAddress(raw) || raw.slice(0, 80);
+}
+
+function normalizeAgentId(value = "") {
+  return sanitizeAlphaText(value || `agent-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`, 90)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-")
+    .replace(/^-+|-+$/g, "") || `agent-${Date.now().toString(36)}`;
+}
+
+function normalizeAgent(row = {}) {
+  const owner = normalizeAgentOwner(row.owner || row.address || "");
+  const name = sanitizeAlphaText(row.name || "", 80);
+  const skillsMd = String(row.skillsMd || row.skills || "").replace(/\r\n/g, "\n").trim().slice(0, 12000);
+  if (!owner || !name || !skillsMd) return null;
+  const summary = sanitizeAlphaText(row.summary || "", 240);
+  const goals = sanitizeAlphaText(row.goals || "", 800);
+  const targets = sanitizeAlphaText(row.targets || "", 500);
+  return {
+    id: normalizeAgentId(row.id || `${name}-${owner.slice(0, 8)}`),
+    owner,
+    name,
+    status: ["active", "paused"].includes(String(row.status || "").toLowerCase()) ? String(row.status).toLowerCase() : "active",
+    summary,
+    goals,
+    targets,
+    skillsMd,
+    avatar: String(row.avatar || "").trim().slice(0, 1024),
+    createdAt: Number(row.createdAt || Math.floor(Date.now() / 1000)),
+    updatedAt: Number(row.updatedAt || Math.floor(Date.now() / 1000)),
+    lastPostAt: Number(row.lastPostAt || 0)
+  };
+}
+
+function normalizeAgentPost(row = {}) {
+  const agentId = normalizeAgentId(row.agentId || "");
+  const body = sanitizeAlphaText(row.body || "", 1800);
+  if (!agentId || !body) return null;
+  return {
+    id: normalizeAgentId(row.id || `agent-post-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`),
+    agentId,
+    owner: normalizeAgentOwner(row.owner || ""),
+    kind: ["job-search", "application", "interview", "freelance", "update"].includes(String(row.kind || "").toLowerCase())
+      ? String(row.kind || "").toLowerCase()
+      : "job-search",
+    title: sanitizeAlphaText(row.title || "", 120),
+    body,
+    url: String(row.url || "").trim().slice(0, 1024),
+    createdAt: Number(row.createdAt || Math.floor(Date.now() / 1000))
+  };
+}
+
+function sanitizeAgentsStore(store = {}) {
+  const base = store && typeof store === "object" && !Array.isArray(store) ? store : emptyAgentsStore();
+  const agents = (Array.isArray(base.agents) ? base.agents : []).map(normalizeAgent).filter(Boolean);
+  const agentIds = new Set(agents.map((agent) => agent.id));
+  const posts = (Array.isArray(base.posts) ? base.posts : [])
+    .map(normalizeAgentPost)
+    .filter((post) => post && agentIds.has(post.agentId))
+    .slice(-1000);
+  return { agents, posts };
+}
+
+function readAgentsDb() {
+  if (agentsDbCache && typeof agentsDbCache === "object") return agentsDbCache;
+  try {
+    if (fs.existsSync(AGENTS_DB_PATH)) {
+      agentsDbCache = sanitizeAgentsStore(JSON.parse(fs.readFileSync(AGENTS_DB_PATH, "utf8") || "{}"));
+      return agentsDbCache;
+    }
+  } catch {
+    // fall through
+  }
+  agentsDbCache = emptyAgentsStore();
+  return agentsDbCache;
+}
+
+function writeAgentsDb(store) {
+  const safe = sanitizeAgentsStore(store);
+  fs.mkdirSync(path.dirname(AGENTS_DB_PATH), { recursive: true });
+  fs.writeFileSync(AGENTS_DB_PATH, JSON.stringify(safe, null, 2));
+  agentsDbCache = safe;
+  return safe;
+}
+
+async function readAgentsDbRemote() {
+  if (!isSupabaseStorageConfigured() || !SUPABASE_AGENTS_OBJECT) return null;
+  const response = await fetch(getSupabaseStorageUploadUrl(SUPABASE_AGENTS_OBJECT), {
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Accept: "application/json"
+    }
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Supabase agents read failed: ${response.status} ${text}`.trim());
+  }
+  return sanitizeAgentsStore(await response.json().catch(() => emptyAgentsStore()));
+}
+
+async function writeAgentsDbRemote(store) {
+  if (!isSupabaseStorageConfigured() || !SUPABASE_AGENTS_OBJECT) return false;
+  await ensureSupabaseStorageBucket();
+  const response = await fetch(getSupabaseStorageUploadUrl(SUPABASE_AGENTS_OBJECT), {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json; charset=utf-8",
+      "x-upsert": "true"
+    },
+    body: JSON.stringify(sanitizeAgentsStore(store), null, 2)
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Supabase agents write failed: ${response.status} ${text}`.trim());
+  }
+  return true;
+}
+
+async function readAgentsDbPersistent(options = {}) {
+  const refresh = Boolean(options.refresh);
+  if (isSupabaseStorageConfigured() && (refresh || !agentsDbRemoteLoaded)) {
+    try {
+      const remote = await readAgentsDbRemote();
+      if (remote) {
+        agentsDbCache = remote;
+        writeAgentsDb(remote);
+      }
+      agentsDbRemoteLoaded = true;
+    } catch (error) {
+      console.warn(`Supabase agents read failed: ${error?.message || "connection error"}`);
+      agentsDbRemoteLoaded = true;
+    }
+  }
+  return sanitizeAgentsStore(readAgentsDb());
+}
+
+async function writeAgentsDbPersistent(store) {
+  const safe = writeAgentsDb(store);
+  if (isSupabaseStorageConfigured()) {
+    await writeAgentsDbRemote(safe);
+  }
+  return safe;
+}
+
+function publicAgent(agent = {}, store = readAgentsDb()) {
+  const posts = (store.posts || []).filter((post) => post.agentId === agent.id);
+  return {
+    ...agent,
+    postCount: posts.length,
+    latestPost: posts.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))[0] || null
   };
 }
 
@@ -5221,6 +5389,74 @@ app.post("/api/community/:token/posts/:postId/like", async (req, res) => {
   }
 });
 
+
+app.get("/api/agents", async (req, res) => {
+  try {
+    const store = await readAgentsDbPersistent({ refresh: req.query.fresh === "1" });
+    const owner = normalizeAgentOwner(req.query.owner || "");
+    const agents = (store.agents || [])
+      .filter((agent) => !owner || String(agent.owner || "").toLowerCase() === owner.toLowerCase())
+      .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0))
+      .map((agent) => publicAgent(agent, store));
+    const posts = (store.posts || []).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)).slice(0, 80);
+    res.json({ agents, posts });
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Failed to load agents" });
+  }
+});
+
+app.post("/api/agents", async (req, res) => {
+  try {
+    const store = await readAgentsDbPersistent();
+    const incoming = normalizeAgent({
+      ...req.body,
+      owner: req.body?.owner || req.body?.address
+    });
+    if (!incoming) throw new Error("Agent name, wallet, and SKILLS.md are required");
+    const existingIndex = (store.agents || []).findIndex((agent) => agent.id === incoming.id || (agent.owner === incoming.owner && agent.name.toLowerCase() === incoming.name.toLowerCase()));
+    const current = existingIndex >= 0 ? store.agents[existingIndex] : {};
+    const agent = normalizeAgent({
+      ...current,
+      ...incoming,
+      id: current.id || incoming.id,
+      createdAt: current.createdAt || incoming.createdAt,
+      updatedAt: Math.floor(Date.now() / 1000)
+    });
+    if (existingIndex >= 0) store.agents[existingIndex] = agent;
+    else store.agents.unshift(agent);
+    const safe = await writeAgentsDbPersistent(store);
+    res.json({ agent: publicAgent(agent, safe), agents: safe.agents.map((row) => publicAgent(row, safe)) });
+  } catch (error) {
+    res.status(400).json({ error: error.message || "Failed to save agent" });
+  }
+});
+
+app.post("/api/agents/:id/posts", async (req, res) => {
+  try {
+    const store = await readAgentsDbPersistent();
+    const id = normalizeAgentId(req.params.id || "");
+    const index = (store.agents || []).findIndex((agent) => agent.id === id);
+    if (index < 0) throw new Error("Agent not found");
+    const agent = store.agents[index];
+    const owner = normalizeAgentOwner(req.body?.owner || "");
+    if (owner && owner.toLowerCase() !== String(agent.owner || "").toLowerCase()) {
+      throw new Error("Only the agent owner can post as this agent");
+    }
+    const post = normalizeAgentPost({
+      ...req.body,
+      agentId: agent.id,
+      owner: agent.owner
+    });
+    if (!post) throw new Error("Post body is required");
+    store.posts.unshift(post);
+    store.agents[index] = { ...agent, lastPostAt: post.createdAt, updatedAt: post.createdAt };
+    const safe = await writeAgentsDbPersistent(store);
+    res.json({ post, agent: publicAgent(store.agents[index], safe) });
+  } catch (error) {
+    res.status(400).json({ error: error.message || "Failed to post agent update" });
+  }
+});
+
 app.get("/api/go", async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(120, Number(req.query.limit || 80)));
@@ -6152,6 +6388,10 @@ app.get(["/go", "/go/:bountyId"], (_req, res) => {
 
 app.get(["/alpha", "/alpha/:alphaId"], (_req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "alpha.html"));
+});
+
+app.get(["/agents", "/agents/:agentId"], (_req, res) => {
+  res.sendFile(path.join(FRONTEND_DIR, "agents.html"));
 });
 
 app.get("/onboard", (_req, res) => {

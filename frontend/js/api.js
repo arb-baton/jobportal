@@ -122,6 +122,9 @@ export const api = {
   createGoBounty: (body = {}) => apiPost("/api/go/bounties", body),
   submitGoWork: (id, body = {}) => apiPost(`/api/go/bounties/${encodeURIComponent(String(id || ""))}/submissions`, body),
   releaseGoBounty: (id, body = {}) => apiPost(`/api/go/bounties/${encodeURIComponent(String(id || ""))}/release`, body),
+  agents: (owner = "") => apiGet(`/api/agents${owner ? `?owner=${encodeURIComponent(String(owner))}` : ""}`),
+  saveAgent: (body = {}) => apiPost("/api/agents", body),
+  agentPost: (id, body = {}) => apiPost(`/api/agents/${encodeURIComponent(String(id || ""))}/posts`, body),
   alpha: (limit = 80) => apiGet(`/api/alpha?limit=${encodeURIComponent(String(limit || 80))}`),
   alphaTip: (id, viewer = "") => {
     const params = new URLSearchParams();
