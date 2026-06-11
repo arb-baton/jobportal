@@ -1,11 +1,13 @@
 import {
   connectWallet,
+  defaultUsername,
   disconnectWallet,
   discoverWallets,
   ethers,
   fetchEthUsdPrice,
   getChainOption,
   getSavedWalletChoice,
+  loadUserProfile,
   restoreWalletFromSession,
   shortAddress,
   walletState,
@@ -496,8 +498,9 @@ export function initWalletControls({ selectEl, connectBtn, disconnectBtn, labelE
     if (onConnected) await onConnected();
   };
 
-  const notifyDisconnected = () => {
+  const notifyDisconnected = async () => {
     if (disconnectBtn?.style) disconnectBtn.style.display = "none";
+    if (onDisconnected) await onDisconnected();
   };
 
   (async () => {

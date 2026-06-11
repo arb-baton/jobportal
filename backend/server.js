@@ -697,6 +697,8 @@ function pickRpcUrls(chainId) {
     pushIf(process.env.SOLANA_RPC_URL);
     pushIf(process.env.PUMPFUN_SOLANA_RPC_URL);
     pushIf("https://sparkling-blue-sponge.solana-mainnet.quiknode.pro/1a7f99d93cb6940285e9a095de8fc546c3c76d35/");
+    pushIf("https://api.mainnet-beta.solana.com");
+    pushIf("https://solana-rpc.publicnode.com");
     return urls;
   }
 
@@ -4770,9 +4772,21 @@ app.get("/api/solana/balance/:address", async (req, res) => {
     } catch {
       return res.status(400).json({ error: "Invalid Solana wallet address" });
     }
-    const rpcUrl = String(process.env.SOLANA_RPC_URL || process.env.PUMPFUN_SOLANA_RPC_URL || CHAIN_META[101].rpcUrls[0]).trim();
-    const connection = new SolanaConnection(rpcUrl, "confirmed");
-    const lamports = await connection.getBalance(publicKey, "confirmed");
+    const rpcUrls = pickRpcUrls(101);
+    let lamports = null;
+    let lastError = null;
+    for (const rpcUrl of rpcUrls) {
+      try {
+        const connection = new SolanaConnection(rpcUrl, "confirmed");
+        lamports = await withTimeout(connection.getBalance(publicKey, "confirmed"), RPC_READ_TIMEOUT_MS, "Solana balance read");
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (lamports === null || lamports === undefined) {
+      throw lastError || new Error("Unable to read Solana balance");
+    }
     res.json({ address, lamports, sol: Number(lamports || 0) / 1_000_000_000 });
   } catch (error) {
     res.status(500).json({ error: error.message || "Failed to read Solana balance" });

@@ -1,6 +1,6 @@
 import { api } from "./api.js";
 import { defaultUsername, parseUiError, shortAddress, walletState } from "./core.js?v=20260611walletmodal";
-import { initTopbarWalletProfile, setAlert } from "./ui.js?v=20260611topwallet";
+import { initTopbarWalletProfile, setAlert } from "./ui.js?v=20260611walletsync";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const ui = {
