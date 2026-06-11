@@ -850,7 +850,7 @@ function buildExploreCard(launch) {
         </a>
         <span class="coin-badge">${escapeHtml(jobTitleForLaunch(launch))}</span>
         ${quoteSymbol ? `<span class="coin-badge quote-badge">${escapeHtml(quoteSymbol)}</span>` : ""}
-        <span class="chain-badge ${chainClass}" title="${escapeHtml(chain.name)}">${escapeHtml(chain.shortName)}</span>
+        ${pumpFunLaunch ? "" : `<span class="chain-badge ${chainClass}" title="${escapeHtml(chain.name)}">${escapeHtml(chain.shortName)}</span>`}
         <button class="watch-btn ${watched ? "active" : ""}" type="button" data-watch-token="${tokenKey}" aria-label="Toggle watchlist">
           &#9733;
         </button>
@@ -859,7 +859,7 @@ function buildExploreCard(launch) {
         ${titleLine}
         <strong class="coin-metric">${formatLaunchMarketCap(launch)}</strong>
         <div class="coin-meta">
-          <span class="coin-chain-text ${chainClass}">${escapeHtml(chain.shortName)}</span>
+          ${pumpFunLaunch ? "" : `<span class="coin-chain-text ${chainClass}">${escapeHtml(chain.shortName)}</span>`}
           ${renderCreatorPill(launch.creator, 20, launch?.creatorProfile?.address)}
           <span title="${absoluteDate(launch.createdAt)}">${humanAgo(launch.createdAt)}</span>
         </div>
@@ -885,7 +885,7 @@ function buildTrendingCard(launch) {
       <a href="${href}" class="trend-media-link" ${linkAttrs}>
         <img src="${image}" alt="${launch.symbol} logo" onerror="this.onerror=null;this.src='${escapeHtml(fallback)}';" />
         <span class="trend-image-spark" data-trending-spark="${sparkKey}" aria-hidden="true"></span>
-        <span class="trend-chain-badge ${chainClass}">${escapeHtml(chain.shortName)}</span>
+        ${pumpFunLaunch ? "" : `<span class="trend-chain-badge ${chainClass}">${escapeHtml(chain.shortName)}</span>`}
         ${quoteSymbol ? `<span class="trend-chain-badge quote">${escapeHtml(quoteSymbol)}</span>` : ""}
         <div class="trend-overlay">
           <strong>${formatLaunchMarketCap(launch)}</strong>
