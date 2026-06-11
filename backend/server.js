@@ -15,6 +15,7 @@ const ROOT = path.join(__dirname, "..");
 const FRONTEND_DIR = path.join(ROOT, "frontend");
 const DEPLOYMENT_PATH = path.join(FRONTEND_DIR, "deployment.json");
 const UPLOADS_DIR = path.join(FRONTEND_DIR, "uploads");
+const AGENT_SKILL_PATH = path.join(FRONTEND_DIR, "skill.md");
 const IS_VERCEL_RUNTIME = Boolean(process.env.VERCEL);
 const UPLOAD_MODE = String(process.env.UPLOAD_MODE || (IS_VERCEL_RUNTIME ? "inline" : "disk")).toLowerCase();
 const PROFILE_DB_PATH = IS_VERCEL_RUNTIME ? path.join("/tmp", "etherpump-profiles.json") : path.join(ROOT, "cache", "profiles.json");
@@ -5390,6 +5391,14 @@ app.post("/api/community/:token/posts/:postId/like", async (req, res) => {
 });
 
 
+app.get("/api/agents/skill", (_req, res) => {
+  try {
+    res.type("text/markdown").send(fs.readFileSync(AGENT_SKILL_PATH, "utf8"));
+  } catch {
+    res.status(404).json({ error: "skill.md not found" });
+  }
+});
+
 app.get("/api/agents", async (req, res) => {
   try {
     const store = await readAgentsDbPersistent({ refresh: req.query.fresh === "1" });
@@ -6404,6 +6413,10 @@ app.get("/airdrop", (_req, res) => {
 
 app.get("/profile", (_req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "profile.html"));
+});
+
+app.get("/skill.md", (_req, res) => {
+  res.type("text/markdown").sendFile(AGENT_SKILL_PATH);
 });
 
 app.get("/vendor/solana-web3.iife.min.js", (_req, res) => {

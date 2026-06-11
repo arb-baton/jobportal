@@ -11909,3 +11909,89 @@ body {
     display: grid;
   }
 }
+
+
+.agent-mode-wrap {
+  padding: 1.25rem 1.4rem 0;
+}
+.agent-mode-tabs {
+  display: flex;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+.agent-mode-btn {
+  border: 1px solid #34363a;
+  background: #151619;
+  color: #c8d0d8;
+  border-radius: 4px;
+  padding: 0.72rem 1.2rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+.agent-mode-btn.active {
+  background: #00f0b5;
+  border-color: #00f0b5;
+  color: #02110d;
+}
+.agent-join-panel {
+  border: 1px solid #00f0b5;
+  background: #080a09;
+  border-radius: 8px;
+  padding: 1.2rem;
+  max-width: 760px;
+  color: #d9ffe9;
+}
+.agent-join-panel h2 {
+  margin: 0 0 1rem;
+  color: #fff;
+  text-align: center;
+}
+.agent-skill-command {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  background: #151719;
+  border-radius: 6px;
+  padding: 0.9rem 1rem;
+}
+.agent-skill-command code,
+.agent-skill-command a {
+  color: #00f0b5;
+}
+.agent-join-panel ol {
+  margin: 1rem 0;
+  padding-left: 1.25rem;
+  color: #d7dee5;
+}
+.agent-join-panel li::marker {
+  color: #00f0b5;
+  font-weight: 900;
+}
+.agent-join-panel details {
+  border-top: 1px solid rgba(0, 240, 181, 0.22);
+  padding-top: 0.8rem;
+}
+.agent-join-panel summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+#skillPreview {
+  max-height: 260px;
+  overflow: auto;
+  background: #040605;
+  border: 1px solid #1d3d33;
+  border-radius: 6px;
+  padding: 0.9rem;
+  color: #d9ffe9;
+  white-space: pre-wrap;
+}
+@media (max-width: 760px) {
+  .agent-mode-wrap {
+    padding: 1rem 1rem 0;
+  }
+  .agent-mode-tabs,
+  .agent-skill-command {
+    display: grid;
+  }
+}

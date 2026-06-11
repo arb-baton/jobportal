@@ -22,6 +22,11 @@ const ui = {
   postTitle: document.getElementById("agentPostTitle"),
   postBody: document.getElementById("agentPostBody"),
   postUrl: document.getElementById("agentPostUrl"),
+  humanModeBtn: document.getElementById("humanModeBtn"),
+  agentModeBtn: document.getElementById("agentModeBtn"),
+  joinPanel: document.getElementById("agentJoinPanel"),
+  copySkillLinkBtn: document.getElementById("copySkillLinkBtn"),
+  skillPreview: document.getElementById("skillPreview"),
   signInBtn: document.getElementById("signInBtn"),
   connectBtn: document.getElementById("connectBtn"),
   disconnectBtn: document.getElementById("disconnectBtn"),
@@ -29,7 +34,7 @@ const ui = {
   walletLabel: document.getElementById("walletAddress")
 };
 
-const state = { agents: [], posts: [], query: "", walletControls: null };
+const state = { agents: [], posts: [], query: "", walletControls: null, mode: "agent" };
 
 function escapeHtml(value = "") {
   return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
@@ -65,7 +70,7 @@ function renderAgent(agent) {
     <article class="agent-card">
       <div class="agent-card-head">
         <span class="agent-avatar">${escapeHtml(agent.name.slice(0, 2).toUpperCase())}</span>
-        <div><h2>${escapeHtml(agent.name)}</h2><small>${escapeHtml(ownerName(agent.owner))} · ${escapeHtml(agent.status || "active")}</small></div>
+        <div><h2>${escapeHtml(agent.name)}</h2><small>${escapeHtml(ownerName(agent.owner))} &middot; ${escapeHtml(agent.status || "active")}</small></div>
       </div>
       <p>${escapeHtml(agent.summary || "Job-search agent")}</p>
       <div class="agent-chip-row">
@@ -89,6 +94,25 @@ function render() {
     : '<option value="">Save an agent first</option>';
 }
 
+async function loadSkillPreview() {
+  try {
+    const response = await fetch("/skill.md", { cache: "no-store" });
+    if (!response.ok) throw new Error("skill.md unavailable");
+    const text = await response.text();
+    if (ui.skillPreview) ui.skillPreview.textContent = text;
+    if (ui.skills && !ui.skills.value.trim()) ui.skills.value = text;
+  } catch (error) {
+    if (ui.skillPreview) ui.skillPreview.textContent = "Unable to load skill.md";
+  }
+}
+
+function setAgentMode(mode = "agent") {
+  state.mode = mode === "human" ? "human" : "agent";
+  ui.humanModeBtn?.classList.toggle("active", state.mode === "human");
+  ui.agentModeBtn?.classList.toggle("active", state.mode === "agent");
+  if (ui.joinPanel) ui.joinPanel.hidden = state.mode !== "agent";
+}
+
 async function loadAgents() {
   const payload = await api.agents();
   state.agents = Array.isArray(payload.agents) ? payload.agents : [];
@@ -101,6 +125,18 @@ function requireWallet() {
   if (!address) throw new Error("Sign in with Phantom first");
   return address;
 }
+
+ui.humanModeBtn?.addEventListener("click", () => setAgentMode("human"));
+ui.agentModeBtn?.addEventListener("click", () => setAgentMode("agent"));
+ui.copySkillLinkBtn?.addEventListener("click", async () => {
+  const url = `${location.origin}/skill.md`;
+  try {
+    await navigator.clipboard.writeText(url);
+    setAlert("skill.md link copied");
+  } catch {
+    setAlert(url);
+  }
+});
 
 ui.search?.addEventListener("input", () => {
   state.query = ui.search.value || "";
@@ -163,4 +199,6 @@ state.walletControls = initWalletControls({
   onChange: () => setWalletLabel(ui.walletLabel)
 });
 initSupportWidget();
+setAgentMode("agent");
+loadSkillPreview();
 loadAgents().catch((error) => setAlert(parseUiError(error), "error"));

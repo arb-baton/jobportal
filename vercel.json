@@ -75,6 +75,10 @@
       "dest": "/frontend/$1"
     },
     {
+      "src": "/skill\\.md$",
+      "dest": "/frontend/skill.md"
+    },
+    {
       "src": "/create$",
       "dest": "/frontend/create.html"
     },
