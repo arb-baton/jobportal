@@ -17,7 +17,7 @@ import {
   shortAddress,
   walletState,
   weiToUsd
-} from "./core.js?v=20260611solfix";
+} from "./core.js?v=20260611walletmodal";
 import { initWalletControls, initWalletHubMenu, setAlert } from "./ui.js?v=20260611walletmodal";
 import { getLaunchSparklinePath, initCoinSearchOverlay, recordViewedLaunch } from "./searchModal.js?v=20260505a";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
@@ -25,7 +25,7 @@ import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 const WATCHLIST_KEY = "etherpump.watchlist.v1";
 const LAUNCH_CACHE_KEY = "getmeajob.launches.cache.v1";
 const LAUNCH_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
-const HOME_FEED_CLEARED = true;
+const HOME_FEED_CLEARED = false;
 const MAX_PROFILE_IMAGE_BYTES = 2 * 1024 * 1024;
 
 const ui = {
@@ -109,6 +109,19 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const LEGACY_PLACEHOLDER_NAMES = new Set(["eth usd pair test", "base test", "bonding test", "monad test", "pumpverse 2"]);
+const LEGACY_PLACEHOLDER_SYMBOLS = new Set(["ethusd", "btest", "test", "montest", "pumpverse 2"]);
+
+function isLegacyPlaceholderLaunch(launch = {}) {
+  const name = String(launch?.name || "").trim().toLowerCase();
+  const symbol = String(launch?.symbol || "").trim().replace(/^\$/, "").toLowerCase();
+  return LEGACY_PLACEHOLDER_NAMES.has(name) || LEGACY_PLACEHOLDER_SYMBOLS.has(symbol);
+}
+
+function visibleLaunchRows(rows = []) {
+  return (Array.isArray(rows) ? rows : []).filter((row) => row && row.token && !isLegacyPlaceholderLaunch(row));
+}
+
 function loadCachedLaunches() {
   if (HOME_FEED_CLEARED) return [];
   try {
@@ -116,7 +129,7 @@ function loadCachedLaunches() {
     if (!raw) return [];
     const payload = JSON.parse(raw);
     const ts = Number(payload?.ts || 0);
-    const launches = Array.isArray(payload?.launches) ? payload.launches : [];
+    const launches = visibleLaunchRows(payload?.launches);
     if (!launches.length) return [];
     if (!Number.isFinite(ts) || Date.now() - ts > LAUNCH_CACHE_MAX_AGE_MS) return [];
     return launches;
@@ -133,7 +146,7 @@ function saveCachedLaunches(launches) {
       LAUNCH_CACHE_KEY,
       JSON.stringify({
         ts: Date.now(),
-        launches: Array.isArray(launches) ? launches : []
+        launches: visibleLaunchRows(launches)
       })
     );
   } catch {
@@ -216,12 +229,12 @@ async function fetchLaunchPages(options = {}) {
     if (!rows.length || rows.length < pageSize || (Number.isFinite(total) && launches.length >= total)) break;
   }
 
-  return { total: Number(total || launches.length), launches };
+  return { total: Number(total || launches.length), launches: visibleLaunchRows(launches) };
 }
 
 async function fetchRecentLaunchPage(options = {}) {
   const page = await api.launches(options.limit || 24, 0, options);
-  const launches = Array.isArray(page?.launches) ? page.launches.filter((row) => Boolean(row && row.token)) : [];
+  const launches = visibleLaunchRows(page?.launches);
   return { total: Number(page?.total || launches.length), launches };
 }
 
@@ -1479,7 +1492,7 @@ async function refreshLaunches(options = {}) {
   }
 
   const freshLaunches = Array.isArray(launchesRes?.launches)
-    ? launchesRes.launches.filter((row) => Boolean(row && row.token))
+    ? visibleLaunchRows(launchesRes.launches)
     : [];
 
   if (!freshLaunches.length) {

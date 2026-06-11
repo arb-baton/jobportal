@@ -6,7 +6,7 @@ import {
   resolveCoinImage,
   shortAddress,
   walletState
-} from "./core.js";
+} from "./core.js?v=20260611walletmodal";
 import { initWalletControls, setAlert, showCopyToast } from "./ui.js?v=20260611walletmodal";
 import { initCoinSearchOverlay } from "./searchModal.js?v=20260504e";
 

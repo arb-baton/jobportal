@@ -10,7 +10,7 @@ import {
   shortAddress,
   walletState,
   parseUiError
-} from "./core.js";
+} from "./core.js?v=20260611walletmodal";
 
 export function setAlert(el, message, isError = false) {
   if (!el) return;

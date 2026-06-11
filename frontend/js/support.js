@@ -1,5 +1,5 @@
 import { api } from "./api.js?v=20260611supportfix";
-import { defaultUsername, loadUserProfile, shortAddress, walletState } from "./core.js?v=20260611supportfix";
+import { defaultUsername, loadUserProfile, shortAddress, walletState } from "./core.js?v=20260611walletmodal";
 import { setAlert } from "./ui.js?v=20260611walletmodal";
 
 const SUPPORT_MODAL_ID = "supportWidgetModal";

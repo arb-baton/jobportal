@@ -8,7 +8,7 @@ import {
   parseUiError,
   shortAddress,
   walletState
-} from "./core.js?v=20260611supportfix";
+} from "./core.js?v=20260611walletmodal";
 import { initWalletControls, setAlert, setWalletLabel } from "./ui.js?v=20260611walletmodal";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 

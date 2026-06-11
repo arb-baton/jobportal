@@ -4257,7 +4257,7 @@ app.post("/api/pumpfun/launch", async (req, res) => {
     }
 
     const name = String(req.body?.name || "").trim().slice(0, 32);
-    const symbol = String(req.body?.symbol || "").trim().toUpperCase().slice(0, 13);
+    const symbol = String(req.body?.symbol || "").trim().slice(0, 13);
     if (!name || !symbol) {
       return res.status(400).json({ error: "name and symbol are required" });
     }
@@ -4640,11 +4640,22 @@ app.get("/api/launches", async (req, res) => {
 
     const deployment = loadDeploymentConfig();
     const requestedChainId = resolveRequestedChainId(req, deployment);
+    if (Number(requestedChainId) === 101) {
+      const pumpFunStore = await readPumpFunLaunchesPersistent({ refresh: forceFresh });
+      const pumpFunLaunches = (Array.isArray(pumpFunStore.launches) ? pumpFunStore.launches : [])
+        .sort((a, b) => Number(b?.createdAt || 0) - Number(a?.createdAt || 0));
+      return res.json({
+        total: pumpFunLaunches.length,
+        launches: pumpFunLaunches.slice(offset, offset + limit)
+      });
+    }
     const quoteMode = resolveRequestedQuoteMode(req);
     const ctx = await getContext(requestedChainId, { verify: false, quoteMode });
-    const count = await readFactoryLaunchCount(ctx.factory);
+    const hasFactory = Number(ctx.chainId) !== 101 && normalizeAddress(ctx.factoryAddress || "") !== ethers.ZeroAddress;
+    const count = hasFactory ? await readFactoryLaunchCount(ctx.factory) : 0;
     const launchesKey = `${ctx.quoteMode}:${ctx.chainId}:${ctx.factoryAddress.toLowerCase()}:${count}:${limit}:${offset}:${includeDex ? "dex" : "nodex"}:${lite ? "lite" : "full"}`;
     const builder = async () => {
+      if (!hasFactory) return { total: 0, launches: [] };
       const page = await readLaunchPage(ctx, limit, offset);
       const creatorAddresses = [...new Set(page.launches.map((launch) => String(launch?.creator || "").toLowerCase()).filter(Boolean))];
       let creatorProfiles = {};
@@ -4716,7 +4727,7 @@ app.get("/api/launches", async (req, res) => {
       return { total: page.total, launches };
     };
     const payload = forceFresh ? await builder() : await withCache(launchesCache, launchesKey, LAUNCHES_CACHE_TTL_MS, builder);
-    const includePumpFunFeed = offset === 0 && ctx.chainId === 1 && ctx.quoteMode === "native";
+    const includePumpFunFeed = offset === 0 && (Number(ctx.chainId) === 101 || (ctx.chainId === 1 && ctx.quoteMode === "native"));
     if (includePumpFunFeed) {
       const pumpFunStore = await readPumpFunLaunchesPersistent({ refresh: forceFresh });
       const pumpFunLaunches = Array.isArray(pumpFunStore.launches) ? pumpFunStore.launches : [];

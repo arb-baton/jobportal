@@ -22,13 +22,13 @@ import {
   setPreferredChainId,
   shortAddress,
   walletState
-} from "./core.js?v=20260611solfix";
+} from "./core.js?v=20260611walletmodal";
 import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611walletmodal";
 import { initCoinSearchOverlay } from "./searchModal.js?v=20260505a";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const MIN_INITIAL_LIQUIDITY_ETH = 0;
-const FIXED_JOB_TOKEN_SYMBOL = "JOB";
+const FIXED_JOB_TOKEN_SYMBOL = "getmeajob";
 const DEFAULT_PUMPFUN_STARTER_BUY_SOL = "0";
 
 const ui = {
@@ -351,7 +351,7 @@ function renderChainSelector() {
     ui.netChip.textContent = "Pump.fun";
   }
   if (ui.factoryChip && state.config?.factoryAddress) {
-    ui.factoryChip.textContent = "JOB";
+    ui.factoryChip.textContent = "getmeajob";
   }
   if (ui.launchChainHint) {
     ui.launchChainHint.textContent = isPumpFunMode()
@@ -1181,7 +1181,7 @@ async function prepareLaunchDetails() {
   const initialLiquidityEthInput = isPumpFunMode() ? "0" : (ui.devBuyEth?.value?.trim?.() || "0");
 
   if (!name || !symbol) throw new Error("Job title is required");
-  if (isPumpFunMode() && !/^[A-Z0-9]{2,10}$/.test(symbol)) {
+  if (isPumpFunMode() && !/^[a-z0-9]{2,10}$/i.test(symbol)) {
     throw new Error("Pump.fun tickers must be 2-10 letters/numbers.");
   }
   if (!Number.isFinite(creatorAllocationPct) || creatorAllocationPct < 0) {
@@ -1403,6 +1403,36 @@ function bytesToBase64(bytes) {
   return btoa(binary);
 }
 
+function cacheCreatedPumpFunLaunch(row = {}) {
+  const mint = String(row.mint || row.token || "").trim();
+  if (!mint) return;
+  const cacheKey = "getmeajob.launches.cache.v1";
+  const next = {
+    chainId: "pumpfun",
+    source: "pumpfun",
+    token: mint,
+    tokenAddress: mint,
+    mint,
+    name: String(row.name || "Job Application").trim(),
+    symbol: String(row.symbol || "getmeajob").trim(),
+    description: String(row.description || "").trim(),
+    imageUri: String(row.imageUri || "/assets/pump-r-logo.png").trim(),
+    creator: String(row.creator || "").trim(),
+    pumpfunUrl: String(row.pumpfunUrl || (mint ? `https://pump.fun/coin/${mint}` : "")).trim(),
+    createdAt: Number(row.createdAt || Math.floor(Date.now() / 1000))
+  };
+  try {
+    const current = JSON.parse(localStorage.getItem(cacheKey) || "{}");
+    const launches = Array.isArray(current.launches) ? current.launches : [];
+    localStorage.setItem(cacheKey, JSON.stringify({
+      ts: Date.now(),
+      launches: [next, ...launches.filter((item) => String(item?.token || item?.mint || "").toLowerCase() !== mint.toLowerCase())]
+    }));
+  } catch {
+    // best-effort local cache for the home feed
+  }
+}
+
 async function launchPumpFun(details) {
   const { provider, publicKey } = await connectSolanaWallet();
   const solanaWeb3 = await loadSolanaWeb3();
@@ -1436,6 +1466,17 @@ async function launchPumpFun(details) {
       signedTransactionBase64: bytesToBase64(signed.serialize({ requireAllSignatures: false, verifySignatures: false }))
     });
     signature = String(finalized?.signature || "");
+    cacheCreatedPumpFunLaunch({
+      ...(finalized?.launch || {}),
+      mint,
+      name: details.name,
+      symbol: details.symbol,
+      description: details.description,
+      imageUri: details.imageUri,
+      creator: publicKey,
+      pumpfunUrl,
+      createdAt: Math.floor(Date.now() / 1000)
+    });
   } else {
     throw new Error("Your Solana wallet does not support transaction signing in this browser.");
   }
