@@ -11703,7 +11703,7 @@ body {
 /* Get Me a Job product pass */
 .side-link[href='/communities'], .side-link[href='/onboard'], .side-link[href='/airdrop'], .side-link[href*='trade.padre.gg'], .top-community-section { display: none !important; }
 .logo-title { white-space: normal; line-height: 1.05; }
-.logo-name { color: #05342d; }
+.logo-name { color: #76ff9f; text-shadow: 0 0 12px rgba(118, 255, 159, 0.45); }
 .create-chain-card[hidden], .create-advanced[hidden] { display: none !important; }
 #symbol[readonly] { background: #e8fff0; color: #087a36; border-color: rgba(22, 163, 74, 0.42); font-weight: 800; }
 #previewSymbol { color: #13b84f !important; background: #e8fff0; border: 1px solid rgba(19, 184, 79, .28); border-radius: 999px; display: inline-flex; padding: 6px 10px; font-weight: 900; }

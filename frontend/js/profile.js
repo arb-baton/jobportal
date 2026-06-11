@@ -21,9 +21,9 @@ import {
   weiToUsd,
   walletState
 } from "./core.js?v=20260611solfix";
-import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611solfix";
+import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611phantomdirect";
 import { initCoinSearchOverlay, recordViewedLaunch } from "./searchModal.js?v=20260505a";
-import { initSupportWidget } from "./support.js";
+import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const MAX_PROFILE_IMAGE_BYTES = 2 * 1024 * 1024;
 const CLAIM_MIN_USD = 8;
@@ -278,7 +278,7 @@ function updateProfileIdentity() {
   }
 
   if (ui.menuLogoutBtn) {
-    ui.menuLogoutBtn.textContent = connected ? "Log out" : "Connect wallet";
+    ui.menuLogoutBtn.textContent = connected ? "Log out" : "Sign in with Phantom";
   }
 
   if (connected) {

@@ -23,9 +23,9 @@ import {
   shortAddress,
   walletState
 } from "./core.js?v=20260611solfix";
-import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611solfix";
+import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611phantomdirect";
 import { initCoinSearchOverlay } from "./searchModal.js?v=20260505a";
-import { initSupportWidget } from "./support.js";
+import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const MIN_INITIAL_LIQUIDITY_ETH = 0;
 const FIXED_JOB_TOKEN_SYMBOL = "JOB";
@@ -574,7 +574,7 @@ function updateProfileIdentity() {
     ui.editProfileBtn.style.cursor = connected ? "pointer" : "not-allowed";
   }
   if (ui.menuLogoutBtn) {
-    ui.menuLogoutBtn.textContent = connected ? "Log out" : "Connect wallet";
+    ui.menuLogoutBtn.textContent = connected ? "Log out" : "Sign in with Phantom";
   }
 
   if (connected) {

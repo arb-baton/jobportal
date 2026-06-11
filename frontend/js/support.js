@@ -1,6 +1,6 @@
 import { api } from "./api.js?v=20260611supportfix";
 import { defaultUsername, loadUserProfile, shortAddress, walletState } from "./core.js?v=20260611supportfix";
-import { setAlert } from "./ui.js?v=20260611supportfix";
+import { setAlert } from "./ui.js?v=20260611phantomdirect";
 
 const SUPPORT_MODAL_ID = "supportWidgetModal";
 const SUPPORT_LINK_ID = "supportSideLink";
@@ -407,7 +407,7 @@ export function initSupportWidget({ alertEl = null } = {}) {
   function renderMessages() {
     const address = currentAddress();
     if (!address) {
-      return `<div class="support-pane white"><h4>Messages</h4><p class="muted">Connect wallet to send support requests.</p><button id="supportConnectWalletBtn" class="support-widget-primary" type="button">Connect wallet</button></div>`;
+      return `<div class="support-pane white"><h4>Messages</h4><p class="muted">Sign in with Phantom to send support requests.</p><button id="supportConnectWalletBtn" class="support-widget-primary" type="button">Sign in with Phantom</button></div>`;
     }
     const inboxBlock = state.isAdmin
       ? `

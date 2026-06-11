@@ -7,7 +7,7 @@ import {
   shortAddress,
   walletState
 } from "./core.js";
-import { initWalletControls, setAlert, showCopyToast } from "./ui.js";
+import { initWalletControls, setAlert, showCopyToast } from "./ui.js?v=20260611phantomdirect";
 import { initCoinSearchOverlay } from "./searchModal.js?v=20260504e";
 
 const X_AUTH_KEY = "Pump-r.community.xauth.v2";
@@ -236,7 +236,7 @@ function renderGates() {
   const ws = walletState();
   const connected = Boolean(ws.signer && ws.address);
   const xConnected = Boolean(state.xProfile?.authorized && state.xProfile?.username);
-  if (ui.signInBtn) ui.signInBtn.textContent = connected ? shortAddress(ws.address) : "Sign in";
+  if (ui.signInBtn) ui.signInBtn.textContent = connected ? shortAddress(ws.address) : "Sign in with Phantom";
   if (ui.profileNavSide && connected) ui.profileNavSide.href = `/profile?address=${ws.address}`;
   if (ui.xIdentityPill) {
     ui.xIdentityPill.textContent = xConnected ? `@${state.xProfile.username}` : "X disconnected";
@@ -245,11 +245,11 @@ function renderGates() {
   if (ui.connectXBtn) ui.connectXBtn.textContent = xConnected ? "Reconnect X" : "Connect X";
   if (ui.composerWalletBtn) {
     ui.composerWalletBtn.hidden = connected;
-    ui.composerWalletBtn.textContent = "Connect wallet";
+    ui.composerWalletBtn.textContent = "Sign in with Phantom";
   }
   if (ui.xStep) ui.xStep.classList.toggle("complete", xConnected);
   if (ui.holdStep) {
-    ui.holdStep.textContent = connected ? "Wallet connected" : "Connect your wallet";
+    ui.holdStep.textContent = connected ? "Phantom connected" : "Sign in with Phantom";
     ui.holdStep.classList.toggle("complete", connected);
   }
   if (ui.xProfileCard) {
@@ -390,7 +390,7 @@ function renderFeed() {
   if (!ui.feed) return;
   const rows = sortedPosts();
   if (!rows.length) {
-    ui.feed.innerHTML = `<article class="panel-card community-empty">${state.token ? "No posts yet. Connect wallet and X to start this community." : "No community posts yet."}</article>`;
+    ui.feed.innerHTML = `<article class="panel-card community-empty">${state.token ? "No posts yet. Sign in with Phantom and X to start this community." : "No community posts yet."}</article>`;
     return;
   }
   ui.feed.innerHTML = rows.map(postCard).join("");

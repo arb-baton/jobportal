@@ -25,9 +25,9 @@ import {
   shortAddress,
   walletState
 } from "./core.js?v=20260611solfix";
-import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611solfix";
+import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611phantomdirect";
 import { initCoinSearchOverlay, recordViewedLaunch } from "./searchModal.js?v=20260504e";
-import { initSupportWidget } from "./support.js";
+import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const RANGE_MS = {
   "5m": 5 * 60 * 1000,
@@ -959,7 +959,7 @@ function updateProfileIdentity() {
   }
 
   if (ui.menuLogoutBtn) {
-    ui.menuLogoutBtn.textContent = connected ? "Log out" : "Connect wallet";
+    ui.menuLogoutBtn.textContent = connected ? "Log out" : "Sign in with Phantom";
   }
 
   if (connected) {
@@ -2822,7 +2822,7 @@ async function init() {
       return;
     }
     ui.connectBtn?.click();
-    setAlert(ui.alert, "Wallet connector unavailable in this tab. Refresh and try again.", true);
+    setAlert(ui.alert, "Phantom unavailable in this tab. Refresh and try again.", true);
   });
 
   const ws = walletState();

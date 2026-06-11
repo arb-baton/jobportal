@@ -18,9 +18,9 @@ import {
   walletState,
   weiToUsd
 } from "./core.js?v=20260611solfix";
-import { initWalletControls, initWalletHubMenu, setAlert } from "./ui.js?v=20260611solfix";
+import { initWalletControls, initWalletHubMenu, setAlert } from "./ui.js?v=20260611phantomdirect";
 import { getLaunchSparklinePath, initCoinSearchOverlay, recordViewedLaunch } from "./searchModal.js?v=20260505a";
-import { initSupportWidget } from "./support.js";
+import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const WATCHLIST_KEY = "etherpump.watchlist.v1";
 const LAUNCH_CACHE_KEY = "getmeajob.launches.cache.v1";
@@ -1143,7 +1143,7 @@ function updateProfileIdentity() {
     ui.editProfileBtn.style.cursor = connected ? "pointer" : "not-allowed";
   }
   if (ui.menuLogoutBtn) {
-    ui.menuLogoutBtn.textContent = connected ? "Log out" : "Connect wallet";
+    ui.menuLogoutBtn.textContent = connected ? "Log out" : "Sign in with Phantom";
   }
 
   if (connected) {
