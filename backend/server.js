@@ -796,11 +796,14 @@ function toFloat(weiLike, decimals = 18, max = 8) {
 }
 
 function normalizeAddress(input) {
+  const text = String(input || "").trim();
+  if (!text) return null;
   try {
-    return ethers.getAddress(input);
+    return ethers.getAddress(text);
   } catch {
-    return null;
+    // Phantom/Solana public keys are base58, not EVM addresses.
   }
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text) ? text : null;
 }
 
 function defaultUsername(address) {
