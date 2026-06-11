@@ -585,9 +585,17 @@ function updateCharCount() {
   if (ui.charCount && ui.postInput) ui.charCount.textContent = `${ui.postInput.value.length}/280`;
 }
 
+function connectWithPhantom() {
+  if (state.walletControls?.connect) {
+    state.walletControls.connect();
+    return;
+  }
+  ui.connectBtn?.click();
+}
+
 function setupEvents() {
-  ui.signInBtn?.addEventListener("click", () => ui.connectBtn?.click());
-  ui.composerWalletBtn?.addEventListener("click", () => ui.connectBtn?.click());
+  ui.signInBtn?.addEventListener("click", connectWithPhantom);
+  ui.composerWalletBtn?.addEventListener("click", connectWithPhantom);
   ui.connectXBtn?.addEventListener("click", startXOAuth);
   ui.postInput?.addEventListener("input", updateCharCount);
   ui.publishBtn?.addEventListener("click", () => publishPost().catch((err) => setAlert(ui.alert, err.message, true)));

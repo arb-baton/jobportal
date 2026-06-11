@@ -517,11 +517,12 @@ export function initWalletControls({ selectEl, connectBtn, disconnectBtn, labelE
       if (!wallets.length) {
         throw new Error("No Phantom wallet detected. Install Phantom and refresh.");
       }
-      const phantomWallet = wallets.find((wallet) => wallet.key === "phantom") || wallets[0];
-      await connectWallet(phantomWallet?.id || "phantom");
+      const phantomOnly = wallets.length === 1 && wallets[0]?.key === "phantom";
+      const choice = phantomOnly ? wallets[0].id || "phantom" : await showWalletPickerModal(wallets);
+      await connectWallet(choice);
       setWalletLabel(labelEl);
       await notifyConnected();
-      setAlert(alertEl, "Phantom connected");
+      setAlert(alertEl, "Wallet connected");
     } catch (err) {
       const message = parseUiError(err);
       if (String(message).toLowerCase().includes("cancelled")) {
