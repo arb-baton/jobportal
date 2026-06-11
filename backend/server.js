@@ -69,9 +69,39 @@ async function loadPumpFunSdk() {
   return mod.PUMP_SDK || mod.default?.PUMP_SDK || mod.default;
 }
 
-const FACTORY_ARTIFACT = require(path.join(ROOT, "artifacts", "contracts", "MemeLaunchFactory.sol", "MemeLaunchFactory.json"));
-const POOL_ARTIFACT = require(path.join(ROOT, "artifacts", "contracts", "MemePool.sol", "MemePool.json"));
-const TOKEN_ARTIFACT = require(path.join(ROOT, "artifacts", "contracts", "MemeToken.sol", "MemeToken.json"));
+function loadArtifact(relativePath, fallbackAbi = []) {
+  try {
+    return require(path.join(ROOT, "artifacts", "contracts", ...relativePath));
+  } catch {
+    return { abi: fallbackAbi };
+  }
+}
+
+const FACTORY_ARTIFACT = loadArtifact(["MemeLaunchFactory.sol", "MemeLaunchFactory.json"], [
+  "event LaunchCreated(uint256 indexed launchId,address indexed creator,address indexed token,address pool,uint256 totalSupply,uint256 creatorAllocation,uint256 feeBps,uint256 graduationTargetEth,address dexRouter,address lpRecipient)",
+  "function createLaunch(string name,string symbol,string imageURI,string description,uint256 totalSupply,uint256 creatorAllocationBps) payable returns (uint256 launchId,address tokenAddress,address poolAddress)",
+  "function createLaunchInstant(string name,string symbol,string imageURI,string description,uint256 totalSupply,uint256 creatorAllocationBps) payable returns (uint256 launchId,address tokenAddress,address poolAddress)",
+  "function getLaunchCount() view returns (uint256)",
+  "function getLaunch(uint256 launchId) view returns ((address token,address pool,address creator,string name,string symbol,string imageURI,string description,uint256 totalSupply,uint256 creatorAllocation,uint256 createdAt))"
+]);
+const POOL_ARTIFACT = loadArtifact(["MemePool.sol", "MemePool.json"], [
+  "function buy(uint256 minTokensOut) payable returns (uint256 tokensOut)",
+  "function sell(uint256 tokenAmountIn,uint256 minEthOut) returns (uint256 ethOut)",
+  "function quoteBuy(uint256 ethAmountIn) view returns (uint256 tokensOut,uint256 feePaid)",
+  "function quoteSell(uint256 tokenAmountIn) view returns (uint256 ethOut,uint256 feePaid)",
+  "function quoteToken() view returns (address)"
+]);
+const TOKEN_ARTIFACT = loadArtifact(["MemeToken.sol", "MemeToken.json"], [
+  "function allowance(address owner,address spender) view returns (uint256)",
+  "function approve(address spender,uint256 amount) returns (bool)",
+  "function balanceOf(address account) view returns (uint256)",
+  "function creator() view returns (address)",
+  "function creatorClaimable() view returns (uint256)",
+  "function platformFeeRecipient() view returns (address)",
+  "function platformClaimable() view returns (uint256)",
+  "function claimCreatorFees() returns (uint256)",
+  "function claimPlatformFees() returns (uint256)"
+]);
 const V2_PAIR_ABI = [
   "function token0() view returns (address)",
   "function token1() view returns (address)",
@@ -514,6 +544,7 @@ function readQuoteFactoryMapFromEnv(quoteMode = "native") {
 }
 
 function resolveFactoryAddress(chainId, deployment, quoteMode = "native") {
+  if (Number(chainId) === 101) return ethers.ZeroAddress;
   const normalizedQuote = normalizeQuoteMode(quoteMode);
   if (normalizedQuote !== "native") {
     const quoteMap = readQuoteFactoryMapFromEnv(normalizedQuote);
@@ -537,6 +568,7 @@ function resolveFactoryAddress(chainId, deployment, quoteMode = "native") {
 }
 
 function defaultChainIdFromConfig(deployment) {
+  if (String(process.env.PUMPFUN_ONLY || "1") === "1") return 101;
   const envChain = parseChainId(process.env.CHAIN_ID);
   if (envChain) return envChain;
   const deploymentChain = parseChainId(deployment?.chainId);
@@ -547,6 +579,7 @@ function defaultChainIdFromConfig(deployment) {
 function resolveRequestedChainId(req, deployment) {
   const fallback = defaultChainIdFromConfig(deployment);
   const requested = parseChainId(req?.query?.chainId || req?.headers?.["x-chain-id"]);
+  if (requested === 101) return 101;
   if (!requested) return fallback;
 
   try {
@@ -559,6 +592,7 @@ function resolveRequestedChainId(req, deployment) {
 
 function resolveSupportedChains(deployment) {
   const map = readFactoryMapFromEnv();
+  map.set(101, ethers.ZeroAddress);
   const deploymentChain = parseChainId(deployment?.chainId);
   if (deploymentChain && ethers.isAddress(deployment?.memeLaunchFactory)) {
     map.set(deploymentChain, ethers.getAddress(deployment.memeLaunchFactory));
@@ -4544,6 +4578,38 @@ app.get("/api/config", async (req, res) => {
     const quoteMode = resolveRequestedQuoteMode(req);
     const requestedChainId = resolveRequestedChainId(req, deployment);
     const chainId = requestedChainId;
+    if (chainId === 101) {
+      const rpcUrls = pickRpcUrls(chainId);
+      const chainMeta = CHAIN_META[chainId] || {};
+      const quoteAsset = { mode: "native", symbol: "SOL", name: "Solana", address: ethers.ZeroAddress, decimals: 9, isNative: true };
+      return res.json({
+        chainId,
+        chainName: chainMeta.name || "Solana",
+        chainShortName: chainMeta.shortName || "SOL",
+        nativeCurrency: chainMeta.nativeCurrency || "SOL",
+        requestedChainId: parseChainId(req?.query?.chainId || req?.headers?.["x-chain-id"]),
+        quoteMode: "native",
+        quoteAsset,
+        factoryAddress: ethers.ZeroAddress,
+        supportedChains: resolveSupportedChains(deployment).filter((row) => Number(row.chainId) === 101),
+        quoteLaunchOptions: [],
+        deployment: {
+          ...deployment,
+          chainId,
+          memeLaunchFactory: ethers.ZeroAddress,
+          quoteMode: "native",
+          quoteAsset,
+          dexRouter: ethers.ZeroAddress
+        },
+        rpcUrl: rpcUrls[0] || "",
+        rpcUrls,
+        explorerBaseUrl: explorerBaseForChain(chainId),
+        dexRouter: ethers.ZeroAddress,
+        externalLaunch: true,
+        launchMode: "pumpfun"
+      });
+    }
+
     const factoryAddress = resolveFactoryAddress(chainId, deployment, quoteMode);
     const rpcUrls = pickRpcUrls(chainId);
     const supportedChains = resolveSupportedChains(deployment);
