@@ -11759,3 +11759,16 @@ body {
   background: #7df2aa !important;
   color: #07100a !important;
 }
+
+.coin-job-badge {
+  border-color: rgba(125, 242, 170, 0.72);
+  background: rgba(10, 91, 46, 0.94);
+  color: #d9ffe9;
+  box-shadow: 0 0 14px rgba(125, 242, 170, 0.18);
+}
+
+.trend-job-badge {
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 4;
+}

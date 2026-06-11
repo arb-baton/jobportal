@@ -848,7 +848,7 @@ function buildExploreCard(launch) {
           <img class="coin-image" src="${image}" alt="${launch.symbol} logo" onerror="this.onerror=null;this.src='${escapeHtml(fallback)}';" />
           <span class="coin-image-spark" data-explore-spark="${sparkKey}" aria-hidden="true"></span>
         </a>
-        <span class="coin-badge">${escapeHtml(jobTitleForLaunch(launch))}</span>
+        <span class="coin-badge coin-job-badge">${escapeHtml(jobTitleForLaunch(launch))}</span>
         ${quoteSymbol ? `<span class="coin-badge quote-badge">${escapeHtml(quoteSymbol)}</span>` : ""}
         ${pumpFunLaunch ? "" : `<span class="chain-badge ${chainClass}" title="${escapeHtml(chain.name)}">${escapeHtml(chain.shortName)}</span>`}
         <button class="watch-btn ${watched ? "active" : ""}" type="button" data-watch-token="${tokenKey}" aria-label="Toggle watchlist">
@@ -885,6 +885,7 @@ function buildTrendingCard(launch) {
       <a href="${href}" class="trend-media-link" ${linkAttrs}>
         <img src="${image}" alt="${launch.symbol} logo" onerror="this.onerror=null;this.src='${escapeHtml(fallback)}';" />
         <span class="trend-image-spark" data-trending-spark="${sparkKey}" aria-hidden="true"></span>
+        <span class="coin-badge coin-job-badge trend-job-badge">${escapeHtml(jobTitleForLaunch(launch))}</span>
         ${pumpFunLaunch ? "" : `<span class="trend-chain-badge ${chainClass}">${escapeHtml(chain.shortName)}</span>`}
         ${quoteSymbol ? `<span class="trend-chain-badge quote">${escapeHtml(quoteSymbol)}</span>` : ""}
         <div class="trend-overlay">
@@ -1082,6 +1083,21 @@ async function hydrateVisibleMarketCaps(limit = 12) {
   await Promise.all(
     visible.map(async (launch) => {
       try {
+        if (isPumpFunLaunch(launch)) {
+          const payload = await api.pumpfunCoin(launch.mint || launch.token);
+          if (payload?.launch?.token) {
+            const token = getTokenId(launch);
+            if (token) state.hydrateBackoffUntil.delete(token);
+            hydrated.push({
+              ...payload.launch,
+              chainId: "pumpfun",
+              source: "pumpfun",
+              dexSnapshot: launch.dexSnapshot || null
+            });
+            return;
+          }
+        }
+
         const payload = await api.token(launch.token, {
           lite: true,
           fresh: true,

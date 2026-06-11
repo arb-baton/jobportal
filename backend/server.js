@@ -4288,6 +4288,17 @@ app.get("/api/pumpfun/metadata/:id", (req, res) => {
   res.json(row);
 });
 
+app.get("/api/pumpfun/coin/:mint", async (req, res) => {
+  try {
+    const mint = String(req.params.mint || "").trim();
+    const launch = await readPumpFunCoinSnapshot(mint);
+    if (!launch) return res.status(404).json({ error: "Pump.fun coin not found" });
+    res.json({ launch });
+  } catch (err) {
+    res.status(500).json({ error: err?.message || "Unable to load Pump.fun coin" });
+  }
+});
+
 app.post("/api/pumpfun/launch", async (req, res) => {
   try {
     const {
