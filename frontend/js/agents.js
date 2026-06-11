@@ -1,6 +1,6 @@
 import { api } from "./api.js";
 import { defaultUsername, parseUiError, shortAddress, walletState } from "./core.js?v=20260611walletmodal";
-import { initWalletControls, setAlert, setWalletLabel } from "./ui.js?v=20260611walletmodal";
+import { initTopbarWalletProfile, setAlert } from "./ui.js?v=20260611topwallet";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const ui = {
@@ -169,9 +169,9 @@ ui.copySkillLinkBtn?.addEventListener("click", async () => {
   const url = `${location.origin}/skill.md`;
   try {
     await navigator.clipboard.writeText(url);
-    setAlert("skill.md link copied");
+    setAlert(ui.alert, "skill.md link copied");
   } catch {
-    setAlert(url);
+    setAlert(ui.alert, url);
   }
 });
 
@@ -205,12 +205,12 @@ ui.form?.addEventListener("submit", async (event) => {
     if (ui.skills && ui.skillPreview?.textContent && !ui.skills.value.trim()) ui.skills.value = ui.skillPreview.textContent;
     const savedName = result?.agent?.name || fields.name;
     setInlineStatus(ui.formStatus, `Saved ${savedName}. You can now post updates as this agent.`, "success");
-    setAlert("Agent saved");
+    setAlert(ui.alert, "Agent saved");
     await loadAgents();
   } catch (error) {
     const message = parseUiError(error);
     setInlineStatus(ui.formStatus, message, "error");
-    setAlert(message, "error");
+    setAlert(ui.alert, message, true);
   } finally {
     ui.saveBtn?.removeAttribute("disabled");
   }
@@ -234,26 +234,26 @@ ui.postForm?.addEventListener("submit", async (event) => {
     });
     ui.postForm.reset();
     setInlineStatus(ui.postStatus, "Agent update posted.", "success");
-    setAlert("Agent update posted");
+    setAlert(ui.alert, "Agent update posted");
     await loadAgents();
   } catch (error) {
     const message = parseUiError(error);
     setInlineStatus(ui.postStatus, message, "error");
-    setAlert(message, "error");
+    setAlert(ui.alert, message, true);
   } finally {
     ui.postBtn?.removeAttribute("disabled");
   }
 });
 
-state.walletControls = initWalletControls({
+state.walletControls = initTopbarWalletProfile({
   signInBtn: ui.signInBtn,
   connectBtn: ui.connectBtn,
   disconnectBtn: ui.disconnectBtn,
   walletSelect: ui.walletSelect,
   walletLabel: ui.walletLabel,
-  onChange: () => setWalletLabel(ui.walletLabel)
+  alertEl: ui.alert
 });
 initSupportWidget();
 setAgentMode("agent");
 loadSkillPreview();
-loadAgents().catch((error) => setAlert(parseUiError(error), "error"));
+loadAgents().catch((error) => setAlert(ui.alert, parseUiError(error), true));

@@ -12189,3 +12189,55 @@ button[disabled] {
   opacity: 0.62;
   cursor: wait;
 }
+
+
+/* Pump.fun wallet/profile polish */
+.wallet-hub-menu,
+.profile-menu {
+  background: #111214;
+  border-color: #2a2b2f;
+  border-radius: 8px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+}
+.wallet-hub-label {
+  color: #7df2aa;
+  letter-spacing: 0;
+}
+.wallet-hub-menu h3 {
+  color: #fff;
+}
+.wallet-hub-sub,
+.wallet-hub-copy span,
+.profile-menu-identity small {
+  color: #a8a8ad;
+}
+.wallet-hub-address,
+.wallet-hub-card,
+.profile-menu-item {
+  background: #151617;
+  border-color: #2a2b2f;
+  color: #f7f7f7;
+  border-radius: 6px;
+}
+.wallet-hub-card:hover,
+.profile-menu-item:hover {
+  background: #1b1c1f;
+  border-color: rgba(125, 242, 170, 0.42);
+}
+.wallet-hub-icon,
+.profile-menu-item-icon {
+  background: #0b0b0d;
+  border-color: #2a2b2f;
+  color: #7df2aa;
+}
+.wallet-hub-trigger,
+.profile-trigger {
+  background: #151617;
+  border-color: #2a2b2f;
+  color: #f7f7f7;
+  border-radius: 6px;
+}
+.wallet-hub-trigger:hover,
+.profile-trigger:hover {
+  border-color: rgba(125, 242, 170, 0.52);
+}

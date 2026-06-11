@@ -9,7 +9,7 @@ import {
   shortAddress,
   walletState
 } from "./core.js?v=20260611walletmodal";
-import { initWalletControls, setAlert, setWalletLabel } from "./ui.js?v=20260611walletmodal";
+import { initTopbarWalletProfile, setAlert } from "./ui.js?v=20260611topwallet";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const ui = {
@@ -626,28 +626,17 @@ function updateProfileLinks() {
   const ws = walletState();
   const connected = Boolean(ws.signer && ws.address);
   if (ui.profileNavSide) ui.profileNavSide.href = connected ? `/profile?address=${ws.address}` : "/profile";
-  if (ui.signInBtn) ui.signInBtn.textContent = connected ? shortAddress(ws.address) : "Sign in with Phantom";
-  if (ui.walletLabel) setWalletLabel(ui.walletLabel, ws.address);
 }
 
 async function initWallet() {
-  state.walletControls = initWalletControls({
-    selectEl: ui.walletSelect,
+  state.walletControls = initTopbarWalletProfile({
+    signInBtn: ui.signInBtn,
     connectBtn: ui.connectBtn,
     disconnectBtn: ui.disconnectBtn,
-    labelEl: ui.walletLabel,
+    walletSelect: ui.walletSelect,
+    walletLabel: ui.walletLabel,
     alertEl: ui.alert,
-    onConnected: updateProfileLinks,
-    onDisconnected: updateProfileLinks
-  });
-  ui.signInBtn?.addEventListener("click", async () => {
-    if (walletState().signer) return;
-    try {
-      await state.walletControls?.connect();
-      updateProfileLinks();
-    } catch (error) {
-      setAlert(ui.alert, parseUiError(error), true);
-    }
+    onChange: updateProfileLinks
   });
   updateProfileLinks();
 }
