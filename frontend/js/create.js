@@ -28,7 +28,7 @@ import { initSupportWidget } from "./support.js";
 
 const MIN_INITIAL_LIQUIDITY_ETH = 0;
 const FIXED_JOB_TOKEN_SYMBOL = "JOB";
-const DEFAULT_PUMPFUN_STARTER_BUY_SOL = "0.001";
+const DEFAULT_PUMPFUN_STARTER_BUY_SOL = "0";
 
 const ui = {
   walletSelect: document.getElementById("walletChoice"),
@@ -1200,7 +1200,7 @@ async function prepareLaunchDetails() {
   const creatorAllocationPct = parseNumberInput(ui.creatorBuyEth?.value, 0);
   let imageUri = ui.image.value.trim();
   const description = composeDescription();
-  const initialLiquidityEthInput = isPumpFunMode() ? DEFAULT_PUMPFUN_STARTER_BUY_SOL : (ui.devBuyEth?.value?.trim?.() || "0");
+  const initialLiquidityEthInput = isPumpFunMode() ? "0" : (ui.devBuyEth?.value?.trim?.() || "0");
 
   if (!name || !symbol) throw new Error("Job title is required");
   if (isPumpFunMode() && !/^[A-Z0-9]{2,10}$/.test(symbol)) {
@@ -1429,7 +1429,7 @@ async function launchPumpFun(details) {
     imageUri: details.imageUri,
     totalSupply: details.totalSupply?.toString?.() || String(details.totalSupply || ""),
     creatorBps: details.creatorBps?.toString?.() || String(details.creatorBps || "0"),
-    starterBuy: details.starterBuyEth?.toString?.() || "0",
+    starterBuy: "0",
     creatorWallet: details.pumpfunCreatorWallet || publicKey,
     userPublicKey: publicKey,
     source: "Get Me a Job"

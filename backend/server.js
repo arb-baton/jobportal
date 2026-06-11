@@ -4238,19 +4238,6 @@ app.get("/api/pumpfun/metadata/:id", (req, res) => {
   res.json(row);
 });
 
-function parsePumpFunStarterBuyLamports(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return 0n;
-  if (/^\d+$/.test(raw)) {
-    const bigint = BigInt(raw);
-    return bigint > 1_000_000_000n ? bigint / 1_000_000_000n : bigint;
-  }
-  if (/^\d+(\.\d+)?$/.test(raw)) {
-    const [whole, frac = ""] = raw.split(".");
-    return BigInt(whole || "0") * 1_000_000_000n + BigInt((frac + "000000000").slice(0, 9));
-  }
-  return 0n;
-}
 app.post("/api/pumpfun/launch", async (req, res) => {
   try {
     const {
@@ -4294,7 +4281,6 @@ app.post("/api/pumpfun/launch", async (req, res) => {
     }
 
     const mintKeypair = SolanaKeypair.generate();
-    const starterBuyLamports = parsePumpFunStarterBuyLamports(req.body?.starterBuy);
 
     const rpcUrl = String(process.env.SOLANA_RPC_URL || process.env.PUMPFUN_SOLANA_RPC_URL || CHAIN_META[101].rpcUrls[0]).trim();
     let latest = {
@@ -4306,36 +4292,8 @@ app.post("/api/pumpfun/launch", async (req, res) => {
       latest = await connection.getLatestBlockhash("confirmed");
     }
     const connection = new SolanaConnection(rpcUrl, "confirmed");
-    let instructions;
-    if (starterBuyLamports > 0n) {
-      const PumpModule = require("@pump-fun/pump-sdk");
-      const BN = require("bn.js");
-      const onlineSdk = new PumpModule.OnlinePumpSdk(connection);
-      const global = await onlineSdk.fetchGlobal();
-      const solAmount = new BN(starterBuyLamports.toString());
-      const amount = PumpModule.getBuyTokenAmountFromSolAmount({
-        global,
-        feeConfig: null,
-        mintSupply: null,
-        bondingCurve: null,
-        amount: solAmount
-      });
-      instructions = await onlineSdk.createV2AndBuyInstructions({
-        global,
-        mint: mintKeypair.publicKey,
-        name,
-        symbol,
-        uri: metadataUri,
-        creator,
-        user,
-        amount,
-        solAmount,
-        mayhemMode: false,
-        cashback: false
-      });
-    } else {
-      instructions = [
-        await PUMP_SDK.createV2Instruction({
+    const instructions = [
+      await PUMP_SDK.createV2Instruction({
           mint: mintKeypair.publicKey,
           name,
           symbol,
@@ -4346,7 +4304,6 @@ app.post("/api/pumpfun/launch", async (req, res) => {
           cashback: false
         })
       ];
-    }
     const tx = new SolanaTransaction({
       feePayer: user,
       recentBlockhash: latest.blockhash
