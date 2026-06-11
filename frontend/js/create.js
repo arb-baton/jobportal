@@ -3,6 +3,7 @@ import {
   FACTORY_ABI,
   TOKEN_ABI,
   defaultUsername,
+  connectWallet,
   disconnectWallet,
   ensureWalletChain,
   ethers,
@@ -21,8 +22,8 @@ import {
   setPreferredChainId,
   shortAddress,
   walletState
-} from "./core.js?v=20260611phantom";
-import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js";
+} from "./core.js?v=20260611solfix";
+import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611solfix";
 import { initCoinSearchOverlay } from "./searchModal.js?v=20260505a";
 import { initSupportWidget } from "./support.js";
 
@@ -537,27 +538,6 @@ function setProfileMenuOpen(open) {
 }
 
 function updateProfileIdentity() {
-  if (isPumpFunMode() && state.solanaWallet?.publicKey) {
-    const publicKey = state.solanaWallet.publicKey;
-    const username = `sol_${publicKey.slice(0, 6)}`;
-    if (ui.profileMenuName) ui.profileMenuName.textContent = username;
-    if (ui.profileMenuNameLarge) ui.profileMenuNameLarge.textContent = username;
-    if (ui.profileMenuMeta) ui.profileMenuMeta.textContent = "Solana wallet connected";
-    if (ui.signInBtn) ui.signInBtn.style.display = "none";
-    if (ui.walletHubBtn) ui.walletHubBtn.style.display = "none";
-    if (ui.profileMenuBtn) ui.profileMenuBtn.style.display = "inline-flex";
-    if (ui.profileNav) ui.profileNav.href = "/profile";
-    if (ui.profileNavSide) ui.profileNavSide.href = "/profile";
-    if (ui.editProfileBtn) {
-      ui.editProfileBtn.disabled = true;
-      ui.editProfileBtn.style.opacity = "0.6";
-      ui.editProfileBtn.style.cursor = "not-allowed";
-    }
-    if (ui.menuLogoutBtn) ui.menuLogoutBtn.textContent = "Disconnect Solana";
-    setAvatarNode(ui.profileAvatar, "SOL", "");
-    setAvatarNode(ui.profileAvatarLarge, "SOL", "");
-    return;
-  }
   const ws = walletState();
   const connected = Boolean(ws.signer && ws.address);
   const profile = connected ? loadUserProfile(ws.address) : { username: "Guest", bio: "", imageUri: "" };
@@ -678,13 +658,11 @@ function setupProfileMenu() {
 
   ui.menuLogoutBtn?.addEventListener("click", () => {
     if (isPumpFunMode() && state.solanaWallet?.publicKey) {
-      try {
-        state.solanaWallet.provider?.disconnect?.();
-      } catch {
-        // optional wallet API
-      }
+      disconnectWallet();
       state.solanaWallet = null;
-      setAlert(ui.alert, "Solana wallet disconnected");
+      setWalletLabel(ui.walletLabel);
+      if (ui.disconnectBtn?.style) ui.disconnectBtn.style.display = "none";
+      setAlert(ui.alert, "Wallet disconnected");
       setProfileMenuOpen(false);
       updateProfileIdentity();
       return;
@@ -1392,13 +1370,20 @@ async function connectSolanaWallet() {
   if (!provider) {
     throw new Error("Install or enable Phantom to launch on Pump.fun.");
   }
-  const response = await provider.connect();
-  const publicKey = response?.publicKey || provider.publicKey;
-  const text = publicKey?.toBase58?.() || String(publicKey || "");
-  if (!text) throw new Error("Solana wallet did not return a public key");
-  state.solanaWallet = { provider, publicKey: text };
+  const ws = walletState();
+  if (ws?.chainType === "solana" && ws?.provider && ws?.address) {
+    state.solanaWallet = { provider: ws.provider, publicKey: ws.address };
+    updateProfileIdentity();
+    await walletHub?.refresh?.();
+    return { provider: ws.provider, publicKey: ws.address };
+  }
+  const connected = await connectWallet("phantom");
+  const publicKey = connected?.address || "";
+  if (!publicKey) throw new Error("Solana wallet did not return a public key");
+  state.solanaWallet = { provider: connected.provider || provider, publicKey };
   updateProfileIdentity();
-  return { provider, publicKey: text };
+  await walletHub?.refresh?.();
+  return { provider: connected.provider || provider, publicKey };
 }
 
 function base64ToBytes(value = "") {
@@ -1711,7 +1696,7 @@ async function init() {
 
   ui.signInBtn?.addEventListener("click", () => {
     if (isPumpFunMode()) {
-      connectSolanaWallet().catch((err) => setAlert(ui.alert, parseUiError(err), true));
+      (walletControls?.connect ? walletControls.connect() : connectSolanaWallet()).catch((err) => setAlert(ui.alert, parseUiError(err), true));
       return;
     }
     if (walletControls?.connect) {

@@ -804,7 +804,9 @@ function normalizeAddress(input) {
 }
 
 function defaultUsername(address) {
-  const normalized = normalizeAddress(address);
+  const text = String(address || "").trim();
+  if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text)) return `sol_${text.slice(0, 6).toLowerCase()}`;
+  const normalized = normalizeAddress(text);
   if (!normalized) return "Guest";
   return `eth_${normalized.slice(2, 8).toLowerCase()}`;
 }
@@ -4529,6 +4531,25 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+
+app.get("/api/solana/balance/:address", async (req, res) => {
+  try {
+    const { Connection: SolanaConnection, PublicKey: SolanaPublicKey } = await loadSolanaWeb3();
+    const address = String(req.params.address || "").trim();
+    let publicKey;
+    try {
+      publicKey = new SolanaPublicKey(address);
+    } catch {
+      return res.status(400).json({ error: "Invalid Solana wallet address" });
+    }
+    const rpcUrl = String(process.env.SOLANA_RPC_URL || process.env.PUMPFUN_SOLANA_RPC_URL || CHAIN_META[101].rpcUrls[0]).trim();
+    const connection = new SolanaConnection(rpcUrl, "confirmed");
+    const lamports = await connection.getBalance(publicKey, "confirmed");
+    res.json({ address, lamports, sol: Number(lamports || 0) / 1_000_000_000 });
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Failed to read Solana balance" });
+  }
+});
 app.get("/api/config", async (req, res) => {
   try {
     const deployment = loadDeploymentConfig();

@@ -56,14 +56,14 @@
       </aside>
 
       <main class="main-pane">
-        <div class="promo-strip">getmeajob portal coming soon</div>
+        <div class="promo-strip">Official $getmeajob CA: 7BdfmAP5gUAwWAj78Pn3axyLBU7aa6HC8gpfL81Hpump</div>
         <header class="topbar create-topbar">
           <div class="create-searchbar">
             <a href="/" class="create-back-btn" aria-label="Back to home">&larr;</a>
             <input id="goSearchInput" placeholder="Search freelance tasks..." />
           </div>
           <div class="top-actions">
-            <button id="signInBtn" class="btn-primary top-action-btn sign-in-btn" type="button">Sign in</button>
+            <button id="signInBtn" class="btn-primary top-action-btn sign-in-btn" type="button">Sign in with Phantom</button>
             <select id="walletChoice" hidden aria-hidden="true" tabindex="-1"></select>
             <button id="connectBtn" hidden type="button">Connect</button>
             <button id="disconnectBtn" hidden type="button">Disconnect</button>
@@ -183,11 +183,11 @@
           <section id="goRewardsStep" class="go-task-step" hidden>
             <small>Step 2</small>
             <h3>Add rewards</h3>
-            <p>Choose the payout rail and amount. Publishing funds escrow immediately from your wallet.</p>
+            <p>Choose the payout amount for the job task.</p>
             <div class="go-reward-editor">
               <small>Reward 1</small>
               <div class="go-form-grid">
-                <label>Payout chain *<select id="goTaskToken"><option value="1">Ethereum ETH</option><option value="8453">Base ETH</option><option value="143">Monad MON</option></select></label>
+                <label>Payout token *<select id="goTaskToken"><option value="101">Solana SOL</option></select></label>
                 <label>Escrow amount *<input id="goTaskTokenAmount" type="number" min="0" step="0.0001" value="0.05" /></label>
               </div>
               <label>Reward USD estimate<input id="goTaskReward" type="number" min="0" step="0.01" value="50" /></label>
@@ -195,9 +195,9 @@
             <div class="go-escrow-note">
               <b id="goEscrowStatus">Escrow checks configuration before publish.</b>
               <ul>
-                <li>Funds are locked in the selected chain's escrow contract when you publish.</li>
+                <li>Funds are paid through the selected Solana payout rail.</li>
                 <li>When the task is done, the creator releases escrow to the selected submitter.</li>
-                <li>If no valid work is completed, the creator can refund escrow from the contract.</li>
+                <li>If no valid work is completed, the creator keeps the task unpaid.</li>
               </ul>
             </div>
             <div class="go-modal-actions">

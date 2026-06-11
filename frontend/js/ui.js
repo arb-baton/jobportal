@@ -97,7 +97,14 @@ async function readWalletChainMeta(ws) {
 }
 
 async function readNativeBalance(ws, address) {
-  if (ws?.chainType === "solana") return 0;
+  if (ws?.chainType === "solana") {
+    const res = await fetch(`/api/solana/balance/${encodeURIComponent(address)}`, { cache: "no-store" });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(payload.error || "Could not fetch SOL balance");
+    const sol = Number(payload.sol || 0);
+    if (!Number.isFinite(sol) || sol < 0) throw new Error("SOL balance value is invalid");
+    return sol;
+  }
   if (!ws?.provider || !address) {
     throw new Error("Wallet provider unavailable");
   }

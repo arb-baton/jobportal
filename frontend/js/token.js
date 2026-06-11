@@ -24,8 +24,8 @@ import {
   setPreferredChainId,
   shortAddress,
   walletState
-} from "./core.js";
-import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js";
+} from "./core.js?v=20260611solfix";
+import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611solfix";
 import { initCoinSearchOverlay, recordViewedLaunch } from "./searchModal.js?v=20260504e";
 import { initSupportWidget } from "./support.js";
 
