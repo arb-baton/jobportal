@@ -138,6 +138,7 @@ function parseChainIdValue(value) {
 }
 
 async function readInjectedChainId(provider = state.activeInjectedProvider) {
+  if (state.chainType === "solana") return 101;
   if (!provider?.request) return null;
   const raw = await provider.request({ method: "eth_chainId" });
   const chainId = parseChainIdValue(raw);
@@ -145,6 +146,7 @@ async function readInjectedChainId(provider = state.activeInjectedProvider) {
 }
 
 async function rebuildWalletProvider() {
+  if (state.chainType === "solana") return;
   if (!state.activeInjectedProvider) return;
   state.provider = new ethers.BrowserProvider(state.activeInjectedProvider);
   if (state.address) {
@@ -155,6 +157,10 @@ async function rebuildWalletProvider() {
 export async function ensureWalletChain(chainId) {
   const target = Number(chainId || 0);
   if (!Number.isFinite(target) || target <= 0) return;
+  if (state.chainType === "solana" || target === 101) {
+    setPreferredChainId(101);
+    return;
+  }
   const option = getChainOption(target);
   const injected = state.activeInjectedProvider;
   if (!injected?.request) {
@@ -489,191 +495,98 @@ function getProviderLocalId(provider) {
   return next;
 }
 
-function getWalletMeta(injected, info = null) {
-  const infoName = String(info?.name || "").trim();
-  const hint = `${String(info?.rdns || "")} ${infoName}`.toLowerCase();
-  const providerLocalId = getProviderLocalId(injected);
-  const infoIdRaw = String(info?.uuid || info?.rdns || infoName || "").trim().toLowerCase();
-  const infoId = infoIdRaw.replace(/[^a-z0-9._:-]/g, "-");
-  const mk = (key, label) => ({
-    id: `${key}:${infoId || providerLocalId}`,
-    key,
-    label,
-    provider: injected
-  });
+function getSolanaProviderCandidates() {
+  const providers = [];
+  const add = (provider) => {
+    if (!provider || providers.includes(provider)) return;
+    providers.push(provider);
+  };
+  add(window.phantom?.solana);
+  add(window.solana);
+  return providers.filter((provider) => provider?.isPhantom);
+}
 
-  if (!injected) return mk("unknown", infoName || "Unknown");
-  if (hint.includes("phantom") || injected.isPhantom) {
-    return mk("phantom", infoName || "Phantom");
-  }
-  if (injected.isRabby || hint.includes("rabby")) {
-    return mk("rabby", infoName || "Rabby");
-  }
-  if (injected.isMetaMask || hint.includes("metamask")) {
-    return mk("metamask", infoName || "MetaMask");
-  }
-  if (injected.isCoinbaseWallet || hint.includes("coinbase")) {
-    return mk("coinbase", infoName || "Coinbase");
-  }
-  return mk("injected", infoName || "Injected");
+function getWalletMeta(injected) {
+  const providerLocalId = getProviderLocalId(injected);
+  return {
+    id: `phantom:${providerLocalId}`,
+    key: "phantom",
+    label: "Phantom",
+    provider: injected,
+    chainType: "solana"
+  };
 }
 
 export function discoverWallets() {
-  ensureEip6963Discovery();
-
-  const providers = [];
-  for (const row of eip6963Providers.values()) {
-    providers.push({ provider: row.provider, info: row.info || null });
-  }
-
-  const root = window.ethereum;
-  if (root) {
-    const injected = Array.isArray(root.providers) && root.providers.length ? root.providers : [root];
-    for (const provider of injected) {
-      providers.push({ provider, info: null });
-    }
-  }
-
-  if (!providers.length) {
-    state.wallets = [];
-    return [];
-  }
-
-  const seen = new Set();
-  const list = [];
-
-  for (const entry of providers) {
-    const provider = entry?.provider;
-    if (!provider || seen.has(provider)) continue;
-    seen.add(provider);
-    list.push(getWalletMeta(provider, entry?.info || null));
-  }
-
+  const list = getSolanaProviderCandidates().map((provider) => getWalletMeta(provider));
   state.wallets = list;
   return list;
 }
 
 export function populateWalletSelect(selectEl) {
   if (!selectEl) return;
-
   const wallets = discoverWallets();
-  const prev = selectEl.value || getSavedWalletChoice() || "metamask";
-  const options = [];
-
-  const has = new Set();
-  for (const wallet of wallets) {
-    if (wallet.key === "metamask" && !has.has("metamask")) {
-      options.push({ value: "metamask", label: "MetaMask" });
-      has.add("metamask");
-      continue;
-    }
-    if (wallet.key === "rabby" && !has.has("rabby")) {
-      options.push({ value: "rabby", label: "Rabby" });
-      has.add("rabby");
-      continue;
-    }
-    if (wallet.key === "coinbase" && !has.has("coinbase")) {
-      options.push({ value: "coinbase", label: "Coinbase" });
-      has.add("coinbase");
-    }
-  }
-
-  selectEl.innerHTML = options.map((opt) => `<option value="${opt.value}">${opt.label}</option>`).join("");
-
-  const values = new Set(options.map((opt) => opt.value));
-  if (!values.size) {
-    selectEl.innerHTML = `<option value="">No wallet detected</option>`;
+  if (!wallets.length) {
+    selectEl.innerHTML = `<option value="">No Phantom wallet detected</option>`;
     selectEl.value = "";
-  } else if (values.has(prev)) {
-    selectEl.value = prev;
-  } else if (values.has("metamask")) {
-    selectEl.value = "metamask";
-  } else {
-    selectEl.value = options[0].value;
+    return;
   }
+  selectEl.innerHTML = `<option value="phantom">Phantom</option>`;
+  selectEl.value = "phantom";
 }
 
-function resolveWallet(choice = "metamask") {
+function resolveWallet(choice = "phantom") {
   const wallets = discoverWallets();
   if (!wallets.length) return null;
-  if (!choice) return wallets[0];
-  const byId = wallets.find((w) => w.id === choice);
-  if (byId) return byId;
-  const byKey = wallets.find((w) => w.key === choice);
-  if (byKey) return byKey;
-  const keyFromComposite = String(choice).split(":")[0];
-  if (keyFromComposite) {
-    const byParsedKey = wallets.find((w) => w.key === keyFromComposite);
-    if (byParsedKey) return byParsedKey;
-  }
-  return wallets[0];
+  return wallets.find((w) => w.id === choice || w.key === choice) || wallets[0];
 }
 
-export async function connectWallet(choice = "", options = {}) {
+export async function connectWallet(choice = "phantom", options = {}) {
   const silent = Boolean(options?.silent);
-  const wallet = resolveWallet(choice || "");
+  const wallet = resolveWallet(choice || "phantom");
   if (!wallet?.provider) {
-    throw new Error("No injected wallet detected.");
+    throw new Error("No Phantom wallet detected. Install Phantom and refresh.");
   }
 
-  if (!state.provider || state.activeInjectedProvider !== wallet.provider) {
-    state.provider = new ethers.BrowserProvider(wallet.provider);
-    state.activeInjectedProvider = wallet.provider;
-    state.signer = null;
-    state.address = "";
-    state.walletLabel = wallet.label;
-  }
-
-  if (!silent && wallet.key === "metamask" && wallet.provider.request) {
-    try {
-      await wallet.provider.request({
-        method: "wallet_requestPermissions",
-        params: [{ eth_accounts: {} }]
-      });
-    } catch {
-      // optional
-    }
-  }
-
-  const method = silent ? "eth_accounts" : "eth_requestAccounts";
-  const accounts = await state.provider.send(method, []);
-  if (!Array.isArray(accounts) || accounts.length === 0) {
+  const provider = wallet.provider;
+  const response = await provider.connect?.({ onlyIfTrusted: silent });
+  const publicKey = response?.publicKey || provider.publicKey;
+  const address = publicKey?.toBase58?.() || String(publicKey || "");
+  if (!address) {
     if (silent) return null;
-    throw new Error("No wallet account selected");
+    throw new Error("No Phantom account selected");
   }
 
-  state.address = ethers.getAddress(accounts[0]);
-  state.signer = await state.provider.getSigner(state.address);
-  state.walletLabel = wallet.label;
-  await syncPreferredChainIdFromProvider(state.provider);
+  state.provider = provider;
+  state.activeInjectedProvider = provider;
+  state.signer = provider;
+  state.address = address;
+  state.walletLabel = "Phantom";
+  state.walletKey = "phantom";
+  state.chainType = "solana";
 
-  if (!walletListenersAttached.has(wallet.provider)) {
-    wallet.provider.on?.("accountsChanged", () => window.location.reload());
-    wallet.provider.on?.("chainChanged", (nextChain) => {
-      const parsed = parseChainIdValue(nextChain);
-      if (Number.isFinite(parsed) && parsed > 0) {
-        setPreferredChainId(parsed);
-        window.dispatchEvent(
-          new CustomEvent("etherpump:chainChanged", {
-            detail: { chainId: parsed }
-          })
-        );
-      }
-    });
-    walletListenersAttached.add(wallet.provider);
+  if (!walletListenersAttached.has(provider)) {
+    provider.on?.("accountChanged", () => window.location.reload());
+    provider.on?.("disconnect", () => disconnectWallet());
+    walletListenersAttached.add(provider);
   }
 
-  // Persist stable wallet key across page reloads; provider IDs may vary by session.
-  saveWalletSession({ connected: true, choice: wallet.key, address: state.address });
-
+  saveWalletSession({ connected: true, choice: "phantom", address: state.address });
   return { ...state };
 }
 
 export function disconnectWallet() {
+  try {
+    state.activeInjectedProvider?.disconnect?.();
+  } catch {
+    // optional wallet API
+  }
   state.provider = null;
   state.signer = null;
   state.address = "";
   state.walletLabel = "";
+  state.walletKey = "";
+  state.chainType = "";
   state.activeInjectedProvider = null;
   saveWalletSession({ connected: false, choice: "", address: "" });
 }
@@ -682,8 +595,7 @@ export async function restoreWalletFromSession(choice = "") {
   const session = loadWalletSession();
   if (!session.connected) return null;
 
-  const target = choice || session.choice || "metamask";
-  const restored = await connectWallet(target, { silent: true });
+  const restored = await connectWallet(choice || "phantom", { silent: true });
   if (!restored?.signer || !restored?.address) {
     disconnectWallet();
     return null;
@@ -697,7 +609,7 @@ export function walletState() {
 
 export function defaultUsername(address) {
   if (!address) return "Guest";
-  return `eth_${String(address).slice(2, 8).toLowerCase()}`;
+  return `sol_${String(address).slice(0, 6).toLowerCase()}`;
 }
 
 function loadProfilesStore() {
@@ -797,11 +709,14 @@ export function loadCachedFollowerCount(address) {
 }
 
 function normalizeProfileAddress(address) {
+  const text = String(address || "").trim();
+  if (!text) return "";
   try {
-    return ethers.getAddress(String(address || "").trim());
+    return ethers.getAddress(text);
   } catch {
-    return "";
+    // Phantom returns Solana public keys, not EVM addresses.
   }
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text) ? text : "";
 }
 
 function normalizeProfileValue(address, value = {}) {

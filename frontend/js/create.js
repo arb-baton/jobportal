@@ -21,7 +21,7 @@ import {
   setPreferredChainId,
   shortAddress,
   walletState
-} from "./core.js?v=20260611pumpfunjob2";
+} from "./core.js?v=20260611phantom";
 import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js";
 import { initCoinSearchOverlay } from "./searchModal.js?v=20260505a";
 import { initSupportWidget } from "./support.js";
@@ -356,7 +356,7 @@ function renderChainSelector() {
     ui.launchChainHint.textContent = isPumpFunMode()
       ? "Pump.fun launches require a Solana wallet, hosted image metadata, a valid ticker, and enough SOL for Pump.fun fees and network gas. After signing, you will be redirected to the Pump.fun coin page."
       : isPumpVerseMode()
-      ? `PumpVerse launches the same token details on ${pumpVerseLabel()}. MetaMask will ask for separate confirmations.`
+      ? `PumpVerse launches are disabled for Get Me a Job.`
       : selectedQuoteMode() === "usdc"
       ? "USDC launches use a USDC-paired bonding curve. Buyers can still route from ETH through Uniswap after graduation."
       : monadConfigured
@@ -482,7 +482,7 @@ function selectPumpFunLaunchMode() {
   state.selectedQuoteMode = "native";
   renderChainSelector();
   updateProfileIdentity();
-  setAlert(ui.alert, "Pump.fun launch selected. Sign in with Phantom or Solflare, then launch the job application.");
+  setAlert(ui.alert, "Pump.fun launch selected. Sign in with Phantom, then launch the job application.");
 }
 
 async function selectPumpVerseMode(mode) {
@@ -1383,15 +1383,14 @@ async function loadSolanaWeb3() {
 
 function getSolanaProvider() {
   if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
-  if (window.solflare) return window.solflare;
   if (window.solana?.isPhantom) return window.solana;
-  return window.phantom?.solana || window.solana || null;
+  return null;
 }
 
 async function connectSolanaWallet() {
   const provider = getSolanaProvider();
   if (!provider) {
-    throw new Error("Install or enable a Solana wallet like Phantom or Solflare to launch on Pump.fun.");
+    throw new Error("Install or enable Phantom to launch on Pump.fun.");
   }
   const response = await provider.connect();
   const publicKey = response?.publicKey || provider.publicKey;

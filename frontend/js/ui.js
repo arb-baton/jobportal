@@ -73,6 +73,7 @@ function formatNativeBalance(value, symbol = "ETH", maxFractionDigits = 6) {
 async function readWalletChainMeta(ws) {
   let chainId = 0;
   try {
+    if (ws?.chainType === "solana") return { chainId: 101, option: getChainOption(101), symbol: "SOL" };
     if (ws?.activeInjectedProvider?.request) {
       const raw = await ws.activeInjectedProvider.request({ method: "eth_chainId" });
       chainId = typeof raw === "string" && raw.startsWith("0x") ? Number.parseInt(raw, 16) : Number(raw || 0);
@@ -96,6 +97,7 @@ async function readWalletChainMeta(ws) {
 }
 
 async function readNativeBalance(ws, address) {
+  if (ws?.chainType === "solana") return 0;
   if (!ws?.provider || !address) {
     throw new Error("Wallet provider unavailable");
   }
@@ -188,7 +190,7 @@ export function initWalletHubMenu({
     if (!connected) {
       if (balanceEl) balanceEl.textContent = "$0.00";
       if (balanceLargeEl) balanceLargeEl.textContent = "$0.00";
-      if (nativeEl) nativeEl.textContent = "0 ETH";
+      if (nativeEl) nativeEl.textContent = "0 SOL";
       if (addressBtnEl) {
         addressBtnEl.textContent = "Not connected";
         addressBtnEl.disabled = true;
@@ -213,8 +215,8 @@ export function initWalletHubMenu({
       historyLinkEl.href = `/profile?address=${address}`;
     }
     if (tradeLinkEl) tradeLinkEl.href = "/";
-    if (buyLinkEl && !buyLinkEl.href) {
-      buyLinkEl.href = "https://www.moonpay.com/buy/eth";
+    if (buyLinkEl) {
+      buyLinkEl.href = "https://www.moonpay.com/buy/sol";
     }
     if (depositAddressEl) depositAddressEl.textContent = address;
     if (depositQrEl) {
@@ -224,7 +226,7 @@ export function initWalletHubMenu({
     }
 
     let nativeBalance = null;
-    let nativeSymbol = "ETH";
+    let nativeSymbol = ws.chainType === "solana" ? "SOL" : "ETH";
     try {
       const meta = await readWalletChainMeta(ws);
       nativeSymbol = meta.symbol || "ETH";
@@ -344,14 +346,14 @@ function showWalletPickerModal(wallets = []) {
       return;
     }
 
-    const preferredOrder = ["metamask", "rabby", "coinbase", "phantom", "injected", "unknown"];
+    const preferredOrder = ["phantom"];
     const orderedWallets = [...wallets].sort((a, b) => {
       const ai = preferredOrder.indexOf(a.key);
       const bi = preferredOrder.indexOf(b.key);
       return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
     });
-    const primaryWallets = orderedWallets.slice(0, 2);
-    const extraWallets = orderedWallets.slice(2);
+    const primaryWallets = orderedWallets.filter((wallet) => wallet.key === "phantom").slice(0, 1);
+    const extraWallets = [];
     const recentChoice = getSavedWalletChoice();
 
     const iconLabel = (wallet) => {
@@ -392,13 +394,11 @@ function showWalletPickerModal(wallets = []) {
             <img src="/assets/pump-r-logo.png?v=20260609brand" alt="Pump-r" />
           </div>
           <h3>Welcome back</h3>
-          <p>Connect your wallet or continue with email.</p>
+          <p>Connect with Phantom to use Get Me a Job.</p>
         </div>
         <div class="wallet-picker-list">
           ${primaryWallets.map((wallet) => renderWalletButton(wallet, true)).join("")}
-          <button type="button" class="btn-ghost wallet-picker-btn wallet-picker-more-btn" data-wallet-more ${
-            extraWallets.length ? "" : "disabled"
-          }>
+          <button type="button" class="btn-ghost wallet-picker-btn wallet-picker-more-btn" data-wallet-more hidden disabled>
             <span class="wallet-picker-btn-left">
               <span class="wallet-picker-icon wallet-more">+</span>
               <span class="wallet-picker-name">More wallets</span>
@@ -409,17 +409,7 @@ function showWalletPickerModal(wallets = []) {
             ${extraWallets.map((wallet) => renderWalletButton(wallet, false)).join("")}
           </div>
         </div>
-        <div class="wallet-picker-divider"><span>or</span></div>
-        <button type="button" class="btn-ghost wallet-picker-btn wallet-picker-email" data-wallet-email>
-          <span class="wallet-picker-btn-left">
-            <span class="wallet-picker-icon wallet-email">U</span>
-            <span>
-              <span class="wallet-picker-name">Email or Social</span>
-              <small>Zero confirmation trading</small>
-            </span>
-          </span>
-          <span class="wallet-picker-arrow">></span>
-        </button>
+        
         <div class="wallet-picker-actions">
           <button type="button" class="btn-ghost wallet-picker-cancel">Cancel</button>
         </div>
@@ -518,7 +508,7 @@ export function initWalletControls({ selectEl, connectBtn, disconnectBtn, labelE
     try {
       const wallets = discoverWallets();
       if (!wallets.length) {
-        throw new Error("No wallet extension detected. Install MetaMask/Rabby and refresh.");
+        throw new Error("No Phantom wallet detected. Install Phantom and refresh.");
       }
       const choice = await showWalletPickerModal(wallets);
       await connectWallet(choice);
