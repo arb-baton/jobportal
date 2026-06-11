@@ -9,7 +9,7 @@ import {
   shortAddress,
   walletState
 } from "./core.js?v=20260611supportfix";
-import { initWalletControls, setAlert, setWalletLabel } from "./ui.js?v=20260611phantomdirect";
+import { initWalletControls, setAlert, setWalletLabel } from "./ui.js?v=20260611walletmodal";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const ui = {

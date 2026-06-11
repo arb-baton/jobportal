@@ -18,7 +18,7 @@ import {
   walletState,
   weiToUsd
 } from "./core.js?v=20260611solfix";
-import { initWalletControls, initWalletHubMenu, setAlert } from "./ui.js?v=20260611phantomdirect";
+import { initWalletControls, initWalletHubMenu, setAlert } from "./ui.js?v=20260611walletmodal";
 import { getLaunchSparklinePath, initCoinSearchOverlay, recordViewedLaunch } from "./searchModal.js?v=20260505a";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 

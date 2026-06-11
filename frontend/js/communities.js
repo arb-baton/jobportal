@@ -7,7 +7,7 @@ import {
   shortAddress,
   walletState
 } from "./core.js";
-import { initWalletControls, setAlert, showCopyToast } from "./ui.js?v=20260611phantomdirect";
+import { initWalletControls, setAlert, showCopyToast } from "./ui.js?v=20260611walletmodal";
 import { initCoinSearchOverlay } from "./searchModal.js?v=20260504e";
 
 const X_AUTH_KEY = "Pump-r.community.xauth.v2";
@@ -249,7 +249,7 @@ function renderGates() {
   }
   if (ui.xStep) ui.xStep.classList.toggle("complete", xConnected);
   if (ui.holdStep) {
-    ui.holdStep.textContent = connected ? "Phantom connected" : "Sign in with Phantom";
+    ui.holdStep.textContent = connected ? "Wallet connected" : "Sign in with Phantom";
     ui.holdStep.classList.toggle("complete", connected);
   }
   if (ui.xProfileCard) {

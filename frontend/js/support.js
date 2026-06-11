@@ -1,6 +1,6 @@
 import { api } from "./api.js?v=20260611supportfix";
 import { defaultUsername, loadUserProfile, shortAddress, walletState } from "./core.js?v=20260611supportfix";
-import { setAlert } from "./ui.js?v=20260611phantomdirect";
+import { setAlert } from "./ui.js?v=20260611walletmodal";
 
 const SUPPORT_MODAL_ID = "supportWidgetModal";
 const SUPPORT_LINK_ID = "supportSideLink";
