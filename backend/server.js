@@ -3974,7 +3974,8 @@ function emptyPumpFunLaunchesStore() {
 function normalizePumpFunLaunch(row = {}) {
   const mint = String(row.mint || row.token || row.tokenAddress || "").trim();
   if (!mint || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) return null;
-  const symbol = String(row.symbol || "").trim().replace(/^\$/, "").toUpperCase().slice(0, 13);
+  const symbol = String(row.symbol || "").trim().replace(/^\$/, "").slice(0, 13);
+  const marketCapUsd = toNumberSafe(row.marketCapUsd || row.usdMarketCap || row.usd_market_cap || row.market_cap, 0);
   return {
     id: String(row.id || mint).trim(),
     chainId: "pumpfun",
@@ -3983,15 +3984,59 @@ function normalizePumpFunLaunch(row = {}) {
     tokenAddress: mint,
     mint,
     name: String(row.name || symbol || "Pump.fun token").trim().slice(0, 80),
-    symbol: symbol || mint.slice(0, 6).toUpperCase(),
+    symbol: symbol || mint.slice(0, 6),
     description: String(row.description || "").trim().slice(0, 4000),
     imageUri: String(row.imageUri || row.image || "").trim().slice(0, 2048),
-    creator: String(row.creator || row.user || "").trim(),
+    creator: String(row.creator || row.user || row.creator_address || "").trim(),
     pumpfunUrl: pickPumpFunUrl(row, mint),
     signature: String(row.signature || "").trim(),
-    metadataUri: String(row.metadataUri || "").trim(),
-    createdAt: Number(row.createdAt || Math.floor(Date.now() / 1000))
+    metadataUri: String(row.metadataUri || row.metadata_uri || "").trim(),
+    marketCapUsd,
+    usdMarketCap: marketCapUsd,
+    priceUsd: toNumberSafe(row.priceUsd || row.usdPrice || row.price_usd, 0),
+    createdAt: Number(row.createdAt || row.created_timestamp || row.created_timestamp_ms / 1000 || Math.floor(Date.now() / 1000))
   };
+}
+
+async function readPumpFunCoinSnapshot(mint = "") {
+  const cleanMint = String(mint || "").trim();
+  if (!cleanMint) return null;
+  try {
+    const response = await withTimeout(
+      fetch(`https://frontend-api-v3.pump.fun/coins/${encodeURIComponent(cleanMint)}`, {
+        headers: { accept: "application/json" }
+      }),
+      3500,
+      "Pump.fun coin snapshot"
+    );
+    if (!response.ok) return null;
+    const coin = await response.json();
+    return normalizePumpFunLaunch({
+      mint: cleanMint,
+      name: coin?.name,
+      symbol: coin?.symbol,
+      description: coin?.description,
+      imageUri: coin?.image_uri || coin?.image,
+      creator: coin?.creator || coin?.creator_address,
+      metadataUri: coin?.metadata_uri,
+      marketCapUsd: coin?.usd_market_cap || coin?.market_cap,
+      priceUsd: coin?.price_usd,
+      createdAt: Number(coin?.created_timestamp || 0) > 1_000_000_000_000
+        ? Number(coin.created_timestamp) / 1000
+        : coin?.created_timestamp
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function enrichPumpFunLaunches(launches = []) {
+  const rows = Array.isArray(launches) ? launches : [];
+  return Promise.all(rows.map(async (row) => {
+    if (Number(row?.marketCapUsd || row?.usdMarketCap || 0) > 0) return row;
+    const snapshot = await readPumpFunCoinSnapshot(row?.mint || row?.token);
+    return snapshot ? { ...row, ...snapshot, name: row.name || snapshot.name, description: row.description || snapshot.description } : row;
+  }));
 }
 
 function sanitizePumpFunLaunchesStore(store = {}) {
@@ -4644,9 +4689,10 @@ app.get("/api/launches", async (req, res) => {
       const pumpFunStore = await readPumpFunLaunchesPersistent({ refresh: forceFresh });
       const pumpFunLaunches = (Array.isArray(pumpFunStore.launches) ? pumpFunStore.launches : [])
         .sort((a, b) => Number(b?.createdAt || 0) - Number(a?.createdAt || 0));
+      const enriched = await enrichPumpFunLaunches(pumpFunLaunches.slice(offset, offset + limit));
       return res.json({
         total: pumpFunLaunches.length,
-        launches: pumpFunLaunches.slice(offset, offset + limit)
+        launches: enriched
       });
     }
     const quoteMode = resolveRequestedQuoteMode(req);
@@ -4734,10 +4780,11 @@ app.get("/api/launches", async (req, res) => {
       const launches = [...pumpFunLaunches, ...(Array.isArray(payload.launches) ? payload.launches : [])]
         .sort((a, b) => Number(b?.createdAt || 0) - Number(a?.createdAt || 0))
         .slice(0, limit);
+      const enriched = await enrichPumpFunLaunches(launches);
       return res.json({
         ...payload,
         total: Number(payload.total || 0) + pumpFunLaunches.length,
-        launches
+        launches: enriched
       });
     }
 

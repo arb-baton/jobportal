@@ -521,6 +521,11 @@ function setProfileMenuOpen(open) {
 }
 
 function formatLaunchMarketCap(launch) {
+  const pumpFunMcap = isPumpFunLaunch(launch)
+    ? Number(launch?.marketCapUsd || launch?.usdMarketCap || launch?.usd_market_cap || 0)
+    : 0;
+  if (pumpFunMcap > 0) return formatUsdMarketCap(pumpFunMcap);
+
   const dexMcapRaw = Number(launch?.dexSnapshot?.marketCapUsd || 0);
   const dexLiqUsd = Number(launch?.dexSnapshot?.liquidityUsd || 0);
   const dexVolUsd = Number(launch?.dexSnapshot?.volume24hUsd || 0);
@@ -557,6 +562,10 @@ function formatLaunchMarketCap(launch) {
   }
   const usd = dexMcap > 0 ? dexMcap : fallbackUsd;
   if (usd <= 0) return "Syncing MC";
+  return formatUsdMarketCap(usd);
+}
+
+function formatUsdMarketCap(usd) {
   let label = "";
   if (usd >= 1_000_000_000) {
     const v = usd / 1_000_000_000;
@@ -574,7 +583,6 @@ function formatLaunchMarketCap(launch) {
   }
   return `$${label}`;
 }
-
 function formatTokenAmount(value) {
   const n = Number(value || 0);
   if (!Number.isFinite(n) || n <= 0) return "0";
@@ -828,6 +836,11 @@ function buildExploreCard(launch) {
   const tokenKey = getTokenId(launch);
   const pumpFunLaunch = isPumpFunLaunch(launch);
   const linkAttrs = pumpFunLaunch ? 'target="_blank" rel="noopener noreferrer"' : "";
+  const titleLine = pumpFunLaunch ? "" : `
+        <div class="coin-head">
+          <h3><a href="${href}" ${linkAttrs}>${trimText(launch.name, 34)}</a></h3>
+          <span>$${trimText(launch.symbol, 14)}</span>
+        </div>`;
   return `
     <article class="coin-card">
       <div class="coin-image-wrap">
@@ -843,10 +856,7 @@ function buildExploreCard(launch) {
         </button>
       </div>
       <div class="coin-body">
-        <div class="coin-head">
-          <h3><a href="${href}" ${linkAttrs}>${trimText(launch.name, 34)}</a></h3>
-          <span>$${trimText(launch.symbol, 14)}</span>
-        </div>
+        ${titleLine}
         <strong class="coin-metric">${formatLaunchMarketCap(launch)}</strong>
         <div class="coin-meta">
           <span class="coin-chain-text ${chainClass}">${escapeHtml(chain.shortName)}</span>
@@ -879,12 +889,12 @@ function buildTrendingCard(launch) {
         ${quoteSymbol ? `<span class="trend-chain-badge quote">${escapeHtml(quoteSymbol)}</span>` : ""}
         <div class="trend-overlay">
           <strong>${formatLaunchMarketCap(launch)}</strong>
-          <span>${trimText(launch.name, 18)}</span>
+          ${pumpFunLaunch ? "" : `<span>${trimText(launch.name, 18)}</span>`}
           <span>$${trimText(launch.symbol, 14)}</span>
         </div>
       </a>
       <div class="trend-copy">
-        <strong>${trimText(launch.name, 36)}</strong>
+        ${pumpFunLaunch ? "" : `<strong>${trimText(launch.name, 36)}</strong>`}
         <span>${trimText(creatorHandle(launch.creator), 18)} | ${createdLabel}</span>
         <p>${trimText(launch.description, 56)}</p>
       </div>
