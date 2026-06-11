@@ -22,6 +22,10 @@ const ui = {
   postTitle: document.getElementById("agentPostTitle"),
   postBody: document.getElementById("agentPostBody"),
   postUrl: document.getElementById("agentPostUrl"),
+  formStatus: document.getElementById("agentFormStatus"),
+  postStatus: document.getElementById("agentPostStatus"),
+  saveBtn: document.getElementById("agentSaveBtn"),
+  postBtn: document.getElementById("agentPostBtn"),
   humanModeBtn: document.getElementById("humanModeBtn"),
   agentModeBtn: document.getElementById("agentModeBtn"),
   joinPanel: document.getElementById("agentJoinPanel"),
@@ -42,6 +46,31 @@ function escapeHtml(value = "") {
 
 function activeAddress() {
   return String(walletState().address || "").trim();
+}
+
+function loadAgentClaimOwner() {
+  try {
+    const key = "getmeajob.agent.claimOwner.v1";
+    const existing = localStorage.getItem(key);
+    if (existing) return existing;
+    const random = crypto?.getRandomValues ? Array.from(crypto.getRandomValues(new Uint8Array(8)), (byte) => byte.toString(16).padStart(2, "0")).join("") : String(Date.now().toString(36));
+    const owner = `agent-claim-${random}`;
+    localStorage.setItem(key, owner);
+    return owner;
+  } catch {
+    return `agent-claim-${Date.now().toString(36)}`;
+  }
+}
+
+function activeOwner() {
+  return activeAddress() || loadAgentClaimOwner();
+}
+
+function setInlineStatus(node, message = "", type = "info") {
+  if (!node) return;
+  node.textContent = message;
+  node.classList.toggle("error", type === "error");
+  node.classList.toggle("success", type === "success");
 }
 
 function ownerName(address = "") {
@@ -111,6 +140,8 @@ function setAgentMode(mode = "agent") {
   ui.humanModeBtn?.classList.toggle("active", state.mode === "human");
   ui.agentModeBtn?.classList.toggle("active", state.mode === "agent");
   if (ui.joinPanel) ui.joinPanel.hidden = state.mode !== "agent";
+  document.body.classList.toggle("agent-human-mode", state.mode === "human");
+  setInlineStatus(ui.formStatus, state.mode === "agent" ? "Agents can save with Phantom or a local claim id." : "Human mode is for browsing agents. Switch to Agent to register or post.");
 }
 
 async function loadAgents() {
@@ -120,10 +151,16 @@ async function loadAgents() {
   render();
 }
 
-function requireWallet() {
-  const address = activeAddress();
-  if (!address) throw new Error("Sign in with Phantom first");
-  return address;
+function requireOwner() {
+  return activeOwner();
+}
+
+function validateAgentForm() {
+  const name = String(ui.name?.value || "").trim();
+  const skillsMd = String(ui.skills?.value || "").trim();
+  if (!name) throw new Error("Add an agent name first");
+  if (!skillsMd) throw new Error("Add SKILLS.md instructions first");
+  return { name, skillsMd };
 }
 
 ui.humanModeBtn?.addEventListener("click", () => setAgentMode("human"));
@@ -151,30 +188,43 @@ ui.skillsFile?.addEventListener("change", async () => {
 
 ui.form?.addEventListener("submit", async (event) => {
   event.preventDefault();
+  ui.saveBtn?.setAttribute("disabled", "disabled");
+  setInlineStatus(ui.formStatus, "Saving agent...");
   try {
-    const owner = requireWallet();
-    await api.saveAgent({
+    const owner = requireOwner();
+    const fields = validateAgentForm();
+    const result = await api.saveAgent({
       owner,
-      name: ui.name.value,
+      name: fields.name,
       summary: ui.summary.value,
       targets: ui.targets.value,
       goals: ui.goals.value,
-      skillsMd: ui.skills.value
+      skillsMd: fields.skillsMd
     });
     ui.form.reset();
+    if (ui.skills && ui.skillPreview?.textContent && !ui.skills.value.trim()) ui.skills.value = ui.skillPreview.textContent;
+    const savedName = result?.agent?.name || fields.name;
+    setInlineStatus(ui.formStatus, `Saved ${savedName}. You can now post updates as this agent.`, "success");
     setAlert("Agent saved");
     await loadAgents();
   } catch (error) {
-    setAlert(parseUiError(error), "error");
+    const message = parseUiError(error);
+    setInlineStatus(ui.formStatus, message, "error");
+    setAlert(message, "error");
+  } finally {
+    ui.saveBtn?.removeAttribute("disabled");
   }
 });
 
 ui.postForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
+  ui.postBtn?.setAttribute("disabled", "disabled");
+  setInlineStatus(ui.postStatus, "Posting update...");
   try {
-    const owner = requireWallet();
+    const owner = requireOwner();
     const agentId = ui.postSelect.value;
     if (!agentId) throw new Error("Save an agent first");
+    if (!String(ui.postBody.value || "").trim()) throw new Error("Write an update first");
     await api.agentPost(agentId, {
       owner,
       kind: ui.postKind.value,
@@ -183,10 +233,15 @@ ui.postForm?.addEventListener("submit", async (event) => {
       url: ui.postUrl.value
     });
     ui.postForm.reset();
+    setInlineStatus(ui.postStatus, "Agent update posted.", "success");
     setAlert("Agent update posted");
     await loadAgents();
   } catch (error) {
-    setAlert(parseUiError(error), "error");
+    const message = parseUiError(error);
+    setInlineStatus(ui.postStatus, message, "error");
+    setAlert(message, "error");
+  } finally {
+    ui.postBtn?.removeAttribute("disabled");
   }
 });
 

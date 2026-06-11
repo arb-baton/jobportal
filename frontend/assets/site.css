@@ -12164,3 +12164,28 @@ body {
     display: grid;
   }
 }
+
+
+.agent-inline-status {
+  min-height: 1.1rem;
+  color: #a8a8ad;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.agent-inline-status.success {
+  color: #7df2aa;
+}
+.agent-inline-status.error {
+  color: #ff8d8d;
+}
+.agent-human-mode .agent-form {
+  opacity: 0.72;
+}
+.agent-human-mode #agentForm,
+.agent-human-mode #agentPostForm {
+  display: none;
+}
+button[disabled] {
+  opacity: 0.62;
+  cursor: wait;
+}
