@@ -1,6 +1,6 @@
-import { api } from "./api.js";
-import { defaultUsername, loadUserProfile, shortAddress, walletState } from "./core.js";
-import { setAlert } from "./ui.js";
+import { api } from "./api.js?v=20260611supportfix";
+import { defaultUsername, loadUserProfile, shortAddress, walletState } from "./core.js?v=20260611supportfix";
+import { setAlert } from "./ui.js?v=20260611supportfix";
 
 const SUPPORT_MODAL_ID = "supportWidgetModal";
 const SUPPORT_LINK_ID = "supportSideLink";
@@ -426,7 +426,7 @@ export function initSupportWidget({ alertEl = null } = {}) {
                         <div class="support-message-thread">
                           <div>
                             <strong>${escapeHtml(m.subject || "Support request")}</strong>
-                            <span>From ${escapeHtml(shortAddress(m.fromAddress || ""))}${m.tokenAddress ? ` · ${escapeHtml(shortAddress(m.tokenAddress))}` : ""}</span>
+                            <span>From ${escapeHtml(shortAddress(m.fromAddress || ""))}${m.tokenAddress ? ` &middot; ${escapeHtml(shortAddress(m.tokenAddress))}` : ""}</span>
                           </div>
                           <em>${escapeHtml(nowAgo(m.createdAt))}</em>
                         </div>
@@ -655,4 +655,5 @@ export function initSupportWidget({ alertEl = null } = {}) {
     open: () => sideLink.click()
   };
 }
+
 

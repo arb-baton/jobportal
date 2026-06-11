@@ -8,8 +8,9 @@ import {
   parseUiError,
   shortAddress,
   walletState
-} from "./core.js";
-import { initWalletControls, setAlert, setWalletLabel } from "./ui.js";
+} from "./core.js?v=20260611supportfix";
+import { initWalletControls, setAlert, setWalletLabel } from "./ui.js?v=20260611supportfix";
+import { initSupportWidget } from "./support.js?v=20260611supportfix";
 
 const ALPHA_X_AUTH_KEY = "etherpump.alpha.xauth.v1";
 
@@ -392,7 +393,7 @@ function updateProfileLinks() {
   const ws = walletState();
   const connected = Boolean(ws.signer && ws.address);
   if (ui.profileNavSide) ui.profileNavSide.href = connected ? `/profile?address=${ws.address}` : "/profile";
-  if (ui.signInBtn) ui.signInBtn.textContent = connected ? shortAddress(ws.address) : "Sign in";
+  if (ui.signInBtn) ui.signInBtn.textContent = connected ? shortAddress(ws.address) : "Sign in with Phantom";
   if (ui.walletLabel) setWalletLabel(ui.walletLabel, ws.address);
 }
 
@@ -407,8 +408,12 @@ async function initWallet() {
   });
   ui.signInBtn?.addEventListener("click", async () => {
     if (walletState().signer) return;
-    await state.walletControls?.connect();
-    updateProfileLinks();
+    try {
+      await state.walletControls?.connect();
+      updateProfileLinks();
+    } catch (error) {
+      setAlert(ui.alert, parseUiError(error), true);
+    }
   });
   updateProfileLinks();
 }
@@ -638,6 +643,7 @@ async function init() {
   handleXOAuthReturn();
   renderXStatus();
   await initWallet();
+  initSupportWidget({ alertEl: ui.alert });
   bindEvents();
   await loadAlpha();
 }

@@ -517,7 +517,8 @@ export function initWalletControls({ selectEl, connectBtn, disconnectBtn, labelE
       if (!wallets.length) {
         throw new Error("No Phantom wallet detected. Install Phantom and refresh.");
       }
-      const choice = await showWalletPickerModal(wallets);
+      const phantomOnly = wallets.length === 1 && wallets[0]?.key === "phantom";
+      const choice = phantomOnly ? wallets[0].id || "phantom" : await showWalletPickerModal(wallets);
       await connectWallet(choice);
       setWalletLabel(labelEl);
       await notifyConnected();

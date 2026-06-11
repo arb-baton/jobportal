@@ -8,8 +8,9 @@ import {
   parseUiError,
   shortAddress,
   walletState
-} from "./core.js";
-import { initWalletControls, setAlert, setWalletLabel } from "./ui.js";
+} from "./core.js?v=20260611supportfix";
+import { initWalletControls, setAlert, setWalletLabel } from "./ui.js?v=20260611supportfix";
+import { initSupportWidget } from "./support.js?v=20260611supportfix";
 
 const ui = {
   alert: document.getElementById("alert"),
@@ -625,7 +626,7 @@ function updateProfileLinks() {
   const ws = walletState();
   const connected = Boolean(ws.signer && ws.address);
   if (ui.profileNavSide) ui.profileNavSide.href = connected ? `/profile?address=${ws.address}` : "/profile";
-  if (ui.signInBtn) ui.signInBtn.textContent = connected ? shortAddress(ws.address) : "Sign in";
+  if (ui.signInBtn) ui.signInBtn.textContent = connected ? shortAddress(ws.address) : "Sign in with Phantom";
   if (ui.walletLabel) setWalletLabel(ui.walletLabel, ws.address);
 }
 
@@ -737,6 +738,7 @@ async function submitWork(event) {
 async function init() {
   const xReturned = handleXOAuthReturn();
   await initWallet();
+  initSupportWidget({ alertEl: ui.alert });
   ui.tabs.forEach((button) => {
     button.addEventListener("click", async () => {
       state.tab = button.dataset.goTab || "trending";
