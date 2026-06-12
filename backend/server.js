@@ -4915,6 +4915,63 @@ app.post("/api/pumpfun/kol-buy", async (req, res) => {
   }
 });
 
+app.post("/api/pumpfun/kol-transfer", async (req, res) => {
+  try {
+    const { Connection: SolanaConnection, PublicKey: SolanaPublicKey, Transaction: SolanaTransaction } = await loadSolanaWeb3();
+    const splToken = require("@solana/spl-token");
+    const mint = new SolanaPublicKey(String(req.body?.mint || req.body?.tokenAddress || "").trim());
+    const user = new SolanaPublicKey(String(req.body?.userPublicKey || "").trim());
+    const kolApplication = sanitizeKolApplication(req.body?.kolApplication);
+    if (!kolApplication?.enabled) return res.status(400).json({ error: "KOL transfer is not enabled" });
+    const kolWallet = new SolanaPublicKey(kolApplication.wallet);
+    const tokenAmountRaw = String(req.body?.tokenAmount || kolApplication?.kolBuy?.tokenAmount || "").replace(/[^0-9]/g, "");
+    const tokenAmount = BigInt(tokenAmountRaw || "0");
+    if (tokenAmount <= 0n) return res.status(400).json({ error: "KOL transfer token amount is missing" });
+
+    const rpcUrl = String(process.env.SOLANA_RPC_URL || process.env.PUMPFUN_SOLANA_RPC_URL || CHAIN_META[101].rpcUrls[0]).trim();
+    const connection = new SolanaConnection(rpcUrl, "confirmed");
+    const latest = await connection.getLatestBlockhash("confirmed");
+    const userTokenAccount = splToken.getAssociatedTokenAddressSync(mint, user, true, splToken.TOKEN_2022_PROGRAM_ID);
+    const kolTokenAccount = splToken.getAssociatedTokenAddressSync(mint, kolWallet, true, splToken.TOKEN_2022_PROGRAM_ID);
+    const instructions = [
+      splToken.createAssociatedTokenAccountIdempotentInstruction(
+        user,
+        kolTokenAccount,
+        kolWallet,
+        mint,
+        splToken.TOKEN_2022_PROGRAM_ID
+      ),
+      splToken.createTransferInstruction(
+        userTokenAccount,
+        kolTokenAccount,
+        user,
+        tokenAmount,
+        [],
+        splToken.TOKEN_2022_PROGRAM_ID
+      )
+    ];
+    const tx = new SolanaTransaction({ feePayer: user, recentBlockhash: latest.blockhash }).add(...instructions);
+    res.json({
+      ok: true,
+      transactionBase64: tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64"),
+      kolApplication: {
+        ...kolApplication,
+        kolBuy: {
+          ...(kolApplication.kolBuy || {}),
+          wallet: kolApplication.wallet,
+          tokenAmount: tokenAmount.toString(),
+          recipientMode: "kol_wallet"
+        }
+      },
+      rpcUrl,
+      blockhash: latest.blockhash,
+      lastValidBlockHeight: latest.lastValidBlockHeight
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Unable to build KOL transfer transaction" });
+  }
+});
+
 app.post("/api/solana/send-transaction", async (req, res) => {
   try {
     const { Connection: SolanaConnection, Transaction: SolanaTransaction } = await loadSolanaWeb3();

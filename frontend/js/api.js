@@ -28,7 +28,7 @@ export async function apiGet(path) {
 export async function apiPost(path, body) {
   const target = withPreferredChain(path);
   const ctrl = new AbortController();
-  const timeoutMs = path.startsWith("/api/pumpfun/launch") || path.startsWith("/api/pumpfun/finalize") || path.startsWith("/api/pumpfun/kol-buy") || path.startsWith("/api/solana/send-transaction") ? 60000 : 15000;
+  const timeoutMs = path.startsWith("/api/pumpfun/launch") || path.startsWith("/api/pumpfun/finalize") || path.startsWith("/api/pumpfun/kol-buy") || path.startsWith("/api/pumpfun/kol-transfer") || path.startsWith("/api/solana/send-transaction") ? 60000 : 15000;
   const timeout = setTimeout(() => ctrl.abort(), timeoutMs);
   const res = await fetch(target, {
     method: "POST",
@@ -144,6 +144,7 @@ export const api = {
   pumpfunLaunch: (body = {}) => apiPost("/api/pumpfun/launch", body),
   pumpfunFinalize: (body = {}) => apiPost("/api/pumpfun/finalize", body),
   pumpfunKolBuy: (body = {}) => apiPost("/api/pumpfun/kol-buy", body),
+  pumpfunKolTransfer: (body = {}) => apiPost("/api/pumpfun/kol-transfer", body),
   solanaSendTransaction: (body = {}) => apiPost("/api/solana/send-transaction", body),
   pumpfunSyncLaunches: (launches = []) => apiPost("/api/pumpfun/launches/sync", { launches }),
   officialAirdrop: () => apiGet("/api/airdrop/official"),
