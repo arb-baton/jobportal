@@ -1096,6 +1096,63 @@ async function uploadImageToSupabaseStorage(binary, ext = "png") {
   return uploadBinaryToSupabaseStorage(binary, ext, "launches");
 }
 
+function pumpFunMetadataObjectPath(id = "") {
+  const cleanId = String(id || "").replace(/[^a-f0-9]/gi, "").slice(0, 64);
+  return cleanId ? `pumpfun/metadata/${cleanId}.json` : "";
+}
+
+async function writePumpFunMetadataRemote(id = "", metadata = {}) {
+  const objectPath = pumpFunMetadataObjectPath(id);
+  if (!objectPath || !isSupabaseStorageConfigured()) return false;
+  const binary = Buffer.from(JSON.stringify(metadata), "utf8");
+  const headers = {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    "Content-Type": "application/json",
+    "x-upsert": "true"
+  };
+  let response = await fetch(getSupabaseStorageUploadUrl(objectPath), {
+    method: "POST",
+    headers,
+    body: binary
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    const bucketMissing = response.status === 400 && String(text || "").toLowerCase().includes("bucket not found");
+    if (bucketMissing) {
+      await ensureSupabaseStorageBucket();
+      response = await fetch(getSupabaseStorageUploadUrl(objectPath), {
+        method: "POST",
+        headers,
+        body: binary
+      });
+    }
+    if (!response.ok) {
+      const retryText = await response.text().catch(() => "");
+      throw new Error(`Supabase Pump.fun metadata write failed: ${response.status} ${retryText || text}`.trim());
+    }
+  }
+  return true;
+}
+
+async function readPumpFunMetadataRemote(id = "") {
+  const objectPath = pumpFunMetadataObjectPath(id);
+  if (!objectPath || !isSupabaseStorageConfigured()) return null;
+  const response = await fetch(getSupabaseStorageUploadUrl(objectPath), {
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Accept: "application/json"
+    }
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Supabase Pump.fun metadata read failed: ${response.status} ${text}`.trim());
+  }
+  return response.json();
+}
+
 async function supabaseRequest(relativePath, { method = "GET", query = null, body = null, prefer = "" } = {}) {
   if (!isSupabaseConfigured()) {
     return null;
@@ -4520,35 +4577,44 @@ async function createPumpFunMetadataUri(req, metadata) {
     showName: true
   };
   const binary = Buffer.from(JSON.stringify(clean), "utf8");
+  const id = crypto.randomBytes(10).toString("hex");
+  const store = readPumpFunMetadataDb();
+  store[id] = { ...clean, createdAt: Date.now() };
+  writePumpFunMetadataDb(store);
 
   if (isSupabaseStorageConfigured()) {
     try {
-      return await uploadBinaryToSupabaseStorage(binary, "json", "pumpfun");
+      await writePumpFunMetadataRemote(id, store[id]);
     } catch {
       if (STRICT_UPLOAD_STORE) throw new Error("Pump.fun metadata storage failed");
     }
   }
 
-  const id = crypto.randomBytes(10).toString("hex");
   if (USE_DISK_UPLOADS) {
     const filename = `${id}.json`;
     const filepath = path.join(UPLOADS_DIR, filename);
     fs.writeFileSync(filepath, binary);
-    const base = getPublicBaseUrl(req);
-    return `${base}/uploads/${filename}`;
   }
 
-  const store = readPumpFunMetadataDb();
-  store[id] = { ...clean, createdAt: Date.now() };
-  writePumpFunMetadataDb(store);
   const base = getPublicBaseUrl(req);
   return `${base}/api/pumpfun/metadata/${id}`;
 }
 
-app.get("/api/pumpfun/metadata/:id", (req, res) => {
+app.get("/api/pumpfun/metadata/:id", async (req, res) => {
   const id = String(req.params.id || "").replace(/[^a-f0-9]/gi, "");
   const store = readPumpFunMetadataDb();
-  const row = id ? store[id] : null;
+  let row = id ? store[id] : null;
+  if (!row && id) {
+    row = await readPumpFunMetadataRemote(id).catch(() => null);
+    if (row) {
+      store[id] = row;
+      try {
+        writePumpFunMetadataDb(store);
+      } catch {
+        // best-effort local cache
+      }
+    }
+  }
   if (!row) return res.status(404).json({ error: "Metadata not found" });
   res.json(row);
 });
