@@ -1426,7 +1426,7 @@ function cacheCreatedPumpFunLaunch(row = {}) {
     const launches = Array.isArray(current.launches) ? current.launches : [];
     localStorage.setItem(cacheKey, JSON.stringify({
       ts: Date.now(),
-      launches: [next, ...launches.filter((item) => String(item?.token || item?.mint || "").toLowerCase() !== mint.toLowerCase())]
+      launches: [next, ...launches.filter((item) => String(item?.token || item?.mint || "").toLowerCase() !== mint.toLowerCase())].slice(0, 2000)
     }));
   } catch {
     // best-effort local cache for the home feed

@@ -4222,7 +4222,7 @@ function sanitizePumpFunLaunchesStore(store = {}) {
       seen.add(key);
       return true;
     })
-    .slice(0, 300);
+    .slice(0, 2000);
   return { launches };
 }
 

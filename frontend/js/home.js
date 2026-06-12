@@ -24,7 +24,7 @@ import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const WATCHLIST_KEY = "etherpump.watchlist.v1";
 const LAUNCH_CACHE_KEY = "getmeajob.launches.cache.v1";
-const LAUNCH_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const LAUNCH_CACHE_MAX_ITEMS = 2000;
 const HOME_FEED_CLEARED = false;
 const MAX_PROFILE_IMAGE_BYTES = 2 * 1024 * 1024;
 
@@ -128,10 +128,8 @@ function loadCachedLaunches() {
     const raw = localStorage.getItem(LAUNCH_CACHE_KEY);
     if (!raw) return [];
     const payload = JSON.parse(raw);
-    const ts = Number(payload?.ts || 0);
     const launches = visibleLaunchRows(payload?.launches);
     if (!launches.length) return [];
-    if (!Number.isFinite(ts) || Date.now() - ts > LAUNCH_CACHE_MAX_AGE_MS) return [];
     return launches;
   } catch {
     return [];
@@ -146,7 +144,7 @@ function saveCachedLaunches(launches) {
       LAUNCH_CACHE_KEY,
       JSON.stringify({
         ts: Date.now(),
-        launches: visibleLaunchRows(launches)
+        launches: visibleLaunchRows(launches).slice(0, LAUNCH_CACHE_MAX_ITEMS)
       })
     );
   } catch {
@@ -1524,7 +1522,7 @@ async function refreshLaunches(options = {}) {
     for (const delayMs of retryDelays) {
       if (delayMs > 0) await sleep(delayMs);
       try {
-        launchesRes = await fetchLaunchesAcrossChains(fetchLaunchPages, { pageSize: 24, includeDex: true });
+        launchesRes = await fetchLaunchesAcrossChains(fetchLaunchPages, { pageSize: 120, maxPages: 10, includeDex: true });
         break;
       } catch (error) {
         lastError = error;
