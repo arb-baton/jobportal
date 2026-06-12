@@ -1004,7 +1004,7 @@ function updateKolEstimate() {
   }
   if (ui.kolRouteStatus) {
     ui.kolRouteStatus.textContent = enabled
-      ? `Launch will buy ${quote.solAmount.toFixed(3)} SOL and send about ${formatTokenAmount(quote.tokens)} ${FIXED_JOB_TOKEN_SYMBOL} to ${kol?.name || "selected KOL"}.`
+      ? `Launch will buy ${quote.solAmount.toFixed(3)} SOL for ${kol?.name || "selected KOL"} and receive about ${formatTokenAmount(quote.tokens)} ${FIXED_JOB_TOKEN_SYMBOL} in your wallet first.`
       : "KOL send is off.";
   }
 }
@@ -1575,7 +1575,7 @@ async function launchPumpFun(details) {
     });
     signature = String(finalized?.signature || "");
     if (details.kolApplication?.enabled && Number(details.kolApplication.buySol || 0) > 0) {
-      setAlert(ui.alert, `Open Phantom again to send ${details.kolApplication.buySol} SOL of this application to ${details.kolApplication.name}.`);
+      setAlert(ui.alert, `Open Phantom again to buy ${details.kolApplication.buySol} SOL of this application for the KOL send. Tokens will land in your wallet first.`);
       const kolPayload = await api.pumpfunKolBuy({
         mint,
         creatorWallet: details.pumpfunCreatorWallet || publicKey,
@@ -1586,7 +1586,7 @@ async function launchPumpFun(details) {
       if (!kolTransactionBase64) throw new Error("Pump.fun KOL buy transaction was not returned.");
       const kolTransaction = solanaWeb3.Transaction.from(base64ToBytes(kolTransactionBase64));
       const signedKol = await provider.signTransaction(kolTransaction);
-      setAlert(ui.alert, "Broadcasting KOL application buy...");
+      setAlert(ui.alert, "Broadcasting KOL application buy to your wallet...");
       const kolSent = await api.solanaSendTransaction({
         signedTransactionBase64: bytesToBase64(signedKol.serialize({ requireAllSignatures: false, verifySignatures: false })),
         rpcUrl: kolPayload.rpcUrl,
@@ -1641,7 +1641,7 @@ async function launchPumpFun(details) {
   ui.resultLink.href = pumpfunUrl || `https://pump.fun/coin/${encodeURIComponent(mint)}`;
   ui.resultLink.textContent = "Open Pump.fun job application";
   ui.resultLink.style.display = "inline-block";
-  setAlert(ui.alert, `Pump.fun transaction sent${signature ? ` (${shortAddress(signature)})` : ""}${kolBuySignature ? `; KOL buy sent (${shortAddress(kolBuySignature)})` : ""}. Redirecting...`);
+  setAlert(ui.alert, `Pump.fun transaction sent${signature ? ` (${shortAddress(signature)})` : ""}${kolBuySignature ? `; KOL buy completed (${shortAddress(kolBuySignature)})` : ""}. Redirecting...`);
   window.setTimeout(() => {
     window.location.href = ui.resultLink.href;
   }, 900);

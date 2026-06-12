@@ -4868,12 +4868,12 @@ app.post("/api/pumpfun/kol-buy", async (req, res) => {
     if (!amount || amount.lte(new BN(0))) {
       return res.status(400).json({ error: "KOL buy amount is too small for the Pump.fun quote" });
     }
-    const kolTokenAccount = splToken.getAssociatedTokenAddressSync(mint, kolWallet, true, splToken.TOKEN_2022_PROGRAM_ID);
+    const buyerTokenAccount = splToken.getAssociatedTokenAddressSync(mint, user, true, splToken.TOKEN_2022_PROGRAM_ID);
     const instructions = [
       splToken.createAssociatedTokenAccountIdempotentInstruction(
         user,
-        kolTokenAccount,
-        kolWallet,
+        buyerTokenAccount,
+        user,
         mint,
         splToken.TOKEN_2022_PROGRAM_ID
       ),
@@ -4882,7 +4882,7 @@ app.post("/api/pumpfun/kol-buy", async (req, res) => {
         mint,
         creator,
         user,
-        associatedUser: kolTokenAccount,
+        associatedUser: buyerTokenAccount,
         amount,
         solAmount,
         slippage: 1,
@@ -4900,6 +4900,7 @@ app.post("/api/pumpfun/kol-buy", async (req, res) => {
           wallet: kolApplication.wallet,
           buySol: Number(kolApplication.buySol || 0),
           tokenAmount: amount.toString(),
+          recipientMode: "buyer_wallet",
           estimatedSupplyPct: Number(global?.tokenTotalSupply?.toString?.() || 0) > 0
             ? (Number(amount.toString()) / Number(global.tokenTotalSupply.toString())) * 100
             : Number(kolApplication.estimatedSupplyPct || 0)
