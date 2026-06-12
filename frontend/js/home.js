@@ -24,7 +24,7 @@ import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const WATCHLIST_KEY = "etherpump.watchlist.v1";
 const LAUNCH_CACHE_KEY = "getmeajob.launches.cache.v1";
-const LAUNCH_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
+const LAUNCH_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const HOME_FEED_CLEARED = false;
 const MAX_PROFILE_IMAGE_BYTES = 2 * 1024 * 1024;
 
