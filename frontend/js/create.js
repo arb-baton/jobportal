@@ -1,4 +1,4 @@
-import { api } from "./api.js";
+import { api } from "./api.js?v=20260612phantomwarn";
 import {
   FACTORY_ABI,
   TOKEN_ABI,
@@ -1564,6 +1564,8 @@ async function launchPumpFun(details) {
   setAlert(ui.alert, "Open Phantom to sign first. Get Me a Job will add the mint signature after your approval, simulate the transaction, then broadcast through the configured Solana RPC.");
   const transaction = solanaWeb3.Transaction.from(base64ToBytes(transactionBase64));
   let signature = "";
+  let kolBuySignature = "";
+  let kolApplication = details.kolApplication || null;
   if (typeof provider.signTransaction === "function") {
     const signed = await provider.signTransaction(transaction);
     setAlert(ui.alert, "Finalizing Pump.fun launch with the mint signature...");
@@ -1572,6 +1574,28 @@ async function launchPumpFun(details) {
       signedTransactionBase64: bytesToBase64(signed.serialize({ requireAllSignatures: false, verifySignatures: false }))
     });
     signature = String(finalized?.signature || "");
+    if (details.kolApplication?.enabled && Number(details.kolApplication.buySol || 0) > 0) {
+      setAlert(ui.alert, `Open Phantom again to send ${details.kolApplication.buySol} SOL of this application to ${details.kolApplication.name}.`);
+      const kolPayload = await api.pumpfunKolBuy({
+        mint,
+        creatorWallet: details.pumpfunCreatorWallet || publicKey,
+        userPublicKey: publicKey,
+        kolApplication: details.kolApplication
+      });
+      const kolTransactionBase64 = String(kolPayload?.transactionBase64 || "");
+      if (!kolTransactionBase64) throw new Error("Pump.fun KOL buy transaction was not returned.");
+      const kolTransaction = solanaWeb3.Transaction.from(base64ToBytes(kolTransactionBase64));
+      const signedKol = await provider.signTransaction(kolTransaction);
+      setAlert(ui.alert, "Broadcasting KOL application buy...");
+      const kolSent = await api.solanaSendTransaction({
+        signedTransactionBase64: bytesToBase64(signedKol.serialize({ requireAllSignatures: false, verifySignatures: false })),
+        rpcUrl: kolPayload.rpcUrl,
+        blockhash: kolPayload.blockhash,
+        lastValidBlockHeight: kolPayload.lastValidBlockHeight
+      });
+      kolBuySignature = String(kolSent?.signature || "");
+      kolApplication = kolPayload.kolApplication || details.kolApplication;
+    }
     cacheCreatedPumpFunLaunch({
       ...(finalized?.launch || {}),
       mint,
@@ -1580,7 +1604,7 @@ async function launchPumpFun(details) {
       description: details.description,
       imageUri: details.imageUri,
       creator: publicKey,
-      kolApplication: details.kolApplication || null,
+      kolApplication,
       pumpfunUrl,
       createdAt: Math.floor(Date.now() / 1000)
     });
@@ -1595,7 +1619,7 @@ async function launchPumpFun(details) {
         description: details.description,
         imageUri: details.imageUri,
         creator: publicKey,
-        kolApplication: details.kolApplication || null,
+        kolApplication,
         pumpfunUrl,
         createdAt: Math.floor(Date.now() / 1000)
       }
@@ -1617,11 +1641,11 @@ async function launchPumpFun(details) {
   ui.resultLink.href = pumpfunUrl || `https://pump.fun/coin/${encodeURIComponent(mint)}`;
   ui.resultLink.textContent = "Open Pump.fun job application";
   ui.resultLink.style.display = "inline-block";
-  setAlert(ui.alert, `Pump.fun transaction sent${signature ? ` (${shortAddress(signature)})` : ""}. Redirecting...`);
+  setAlert(ui.alert, `Pump.fun transaction sent${signature ? ` (${shortAddress(signature)})` : ""}${kolBuySignature ? `; KOL buy sent (${shortAddress(kolBuySignature)})` : ""}. Redirecting...`);
   window.setTimeout(() => {
     window.location.href = ui.resultLink.href;
   }, 900);
-  return { ...payload, signature };
+  return { ...payload, signature, kolBuySignature };
 }
 
 async function launchPumpVerse(details) {

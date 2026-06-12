@@ -4653,7 +4653,6 @@ app.post("/api/pumpfun/launch", async (req, res) => {
     if (!PUMP_SDK?.createV2Instruction) {
       return res.status(500).json({ error: "Pump.fun SDK is not available in this runtime" });
     }
-    const PUMP_SDK_MODULE = await loadPumpFunSdkModule();
 
     const name = String(req.body?.name || "").trim().slice(0, 32);
     const symbol = String(req.body?.symbol || "").trim().slice(0, 13);
@@ -4697,91 +4696,18 @@ app.post("/api/pumpfun/launch", async (req, res) => {
       latest = await connection.getLatestBlockhash("confirmed");
     }
     const connection = new SolanaConnection(rpcUrl, "confirmed");
-    let kolBuy = null;
-    let instructions = [];
-    if (kolApplication?.enabled && Number(kolApplication.buySol || 0) > 0) {
-      if (!PUMP_SDK?.buyInstruction || !PUMP_SDK_MODULE?.getBuyTokenAmountFromSolAmount || !PUMP_SDK_MODULE?.GLOBAL_PDA) {
-        return res.status(500).json({ error: "Pump.fun buy instruction support is not available in this runtime" });
-      }
-      const BN = require("bn.js");
-      const splToken = require("@solana/spl-token");
-      const globalInfo = await connection.getAccountInfo(PUMP_SDK_MODULE.GLOBAL_PDA, "confirmed");
-      if (!globalInfo) {
-        return res.status(500).json({ error: "Pump.fun global account is unavailable from the configured Solana RPC" });
-      }
-      const global = PUMP_SDK.decodeGlobal(globalInfo);
-      const solAmount = new BN(Math.max(1, Math.floor(Number(kolApplication.buySol || 0) * 1_000_000_000)));
-      const amount = PUMP_SDK_MODULE.getBuyTokenAmountFromSolAmount({
-        global,
-        feeConfig: null,
-        mintSupply: null,
-        bondingCurve: null,
-        amount: solAmount,
-        quoteMint: SolanaPublicKey.default
-      });
-      if (!amount || amount.lte(new BN(0))) {
-        return res.status(400).json({ error: "KOL buy amount is too small for the Pump.fun quote" });
-      }
-      const kolWallet = new SolanaPublicKey(kolApplication.wallet);
-      const kolTokenAccount = splToken.getAssociatedTokenAddressSync(
-        mintKeypair.publicKey,
-        kolWallet,
-        true,
-        splToken.TOKEN_2022_PROGRAM_ID
-      );
-      instructions = [
-        await PUMP_SDK.createV2Instruction({
-          mint: mintKeypair.publicKey,
-          name,
-          symbol,
-          uri: metadataUri,
-          creator,
-          user,
-          mayhemMode: false,
-          cashback: false
-        }),
-        splToken.createAssociatedTokenAccountIdempotentInstruction(
-          user,
-          kolTokenAccount,
-          kolWallet,
-          mintKeypair.publicKey,
-          splToken.TOKEN_2022_PROGRAM_ID
-        ),
-        await PUMP_SDK.buyInstruction({
-          global,
-          mint: mintKeypair.publicKey,
-          creator,
-          user,
-          associatedUser: kolTokenAccount,
-          amount,
-          solAmount,
-          slippage: 1,
-          tokenProgram: splToken.TOKEN_2022_PROGRAM_ID,
-          mayhemMode: false
-        })
-      ];
-      kolBuy = {
-        wallet: kolApplication.wallet,
-        buySol: Number(kolApplication.buySol || 0),
-        tokenAmount: amount.toString(),
-        estimatedSupplyPct: Number(global?.tokenTotalSupply?.toString?.() || 0) > 0
-          ? (Number(amount.toString()) / Number(global.tokenTotalSupply.toString())) * 100
-          : Number(kolApplication.estimatedSupplyPct || 0)
-      };
-    } else {
-      instructions = [
-        await PUMP_SDK.createV2Instruction({
-          mint: mintKeypair.publicKey,
-          name,
-          symbol,
-          uri: metadataUri,
-          creator,
-          user,
-          mayhemMode: false,
-          cashback: false
-        })
-      ];
-    }
+    const instructions = [
+      await PUMP_SDK.createV2Instruction({
+        mint: mintKeypair.publicKey,
+        name,
+        symbol,
+        uri: metadataUri,
+        creator,
+        user,
+        mayhemMode: false,
+        cashback: false
+      })
+    ];
     const tx = new SolanaTransaction({
       feePayer: user,
       recentBlockhash: latest.blockhash
@@ -4804,7 +4730,7 @@ app.post("/api/pumpfun/launch", async (req, res) => {
       symbol,
       description: String(req.body?.description || "").trim(),
       imageUri: String(req.body?.imageUri || "").trim(),
-      kolApplication: kolApplication ? { ...kolApplication, kolBuy } : null,
+      kolApplication,
       metadataUri,
       mintSecretKey: Buffer.from(mintKeypair.secretKey).toString("base64"),
       rpcUrl,
@@ -4819,7 +4745,7 @@ app.post("/api/pumpfun/launch", async (req, res) => {
       tokenAddress: mint,
       pumpfunUrl: pickPumpFunUrl({}, mint),
       metadataUri,
-      kolApplication: kolApplication ? { ...kolApplication, kolBuy } : null,
+      kolApplication,
       transactionBase64: tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64"),
       signingToken,
       presignSimulationWarning,
@@ -4899,6 +4825,120 @@ app.post("/api/pumpfun/finalize", async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message || "Pump.fun transaction finalization failed" });
+  }
+});
+
+app.post("/api/pumpfun/kol-buy", async (req, res) => {
+  try {
+    const { Connection: SolanaConnection, PublicKey: SolanaPublicKey, Transaction: SolanaTransaction } = await loadSolanaWeb3();
+    const PUMP_SDK = await loadPumpFunSdk();
+    const PUMP_SDK_MODULE = await loadPumpFunSdkModule();
+    if (!PUMP_SDK?.buyInstruction || !PUMP_SDK_MODULE?.getBuyTokenAmountFromSolAmount || !PUMP_SDK_MODULE?.GLOBAL_PDA) {
+      return res.status(500).json({ error: "Pump.fun buy instruction support is not available in this runtime" });
+    }
+    const splToken = require("@solana/spl-token");
+    const BN = require("bn.js");
+    const mint = new SolanaPublicKey(String(req.body?.mint || req.body?.tokenAddress || "").trim());
+    const user = new SolanaPublicKey(String(req.body?.userPublicKey || "").trim());
+    const creator = new SolanaPublicKey(String(req.body?.creatorWallet || req.body?.userPublicKey || "").trim());
+    const kolApplication = sanitizeKolApplication(req.body?.kolApplication);
+    if (!kolApplication?.enabled || Number(kolApplication.buySol || 0) <= 0) {
+      return res.status(400).json({ error: "KOL buy is not enabled" });
+    }
+    const kolWallet = new SolanaPublicKey(kolApplication.wallet);
+    const rpcUrl = String(process.env.SOLANA_RPC_URL || process.env.PUMPFUN_SOLANA_RPC_URL || CHAIN_META[101].rpcUrls[0]).trim();
+    const connection = new SolanaConnection(rpcUrl, "confirmed");
+    const [latest, globalInfo] = await Promise.all([
+      connection.getLatestBlockhash("confirmed"),
+      connection.getAccountInfo(PUMP_SDK_MODULE.GLOBAL_PDA, "confirmed")
+    ]);
+    if (!globalInfo) {
+      return res.status(500).json({ error: "Pump.fun global account is unavailable from the configured Solana RPC" });
+    }
+    const global = PUMP_SDK.decodeGlobal(globalInfo);
+    const solAmount = new BN(Math.max(1, Math.floor(Number(kolApplication.buySol || 0) * 1_000_000_000)));
+    const amount = PUMP_SDK_MODULE.getBuyTokenAmountFromSolAmount({
+      global,
+      feeConfig: null,
+      mintSupply: null,
+      bondingCurve: null,
+      amount: solAmount,
+      quoteMint: SolanaPublicKey.default
+    });
+    if (!amount || amount.lte(new BN(0))) {
+      return res.status(400).json({ error: "KOL buy amount is too small for the Pump.fun quote" });
+    }
+    const kolTokenAccount = splToken.getAssociatedTokenAddressSync(mint, kolWallet, true, splToken.TOKEN_2022_PROGRAM_ID);
+    const instructions = [
+      splToken.createAssociatedTokenAccountIdempotentInstruction(
+        user,
+        kolTokenAccount,
+        kolWallet,
+        mint,
+        splToken.TOKEN_2022_PROGRAM_ID
+      ),
+      await PUMP_SDK.buyInstruction({
+        global,
+        mint,
+        creator,
+        user,
+        associatedUser: kolTokenAccount,
+        amount,
+        solAmount,
+        slippage: 1,
+        tokenProgram: splToken.TOKEN_2022_PROGRAM_ID,
+        mayhemMode: false
+      })
+    ];
+    const tx = new SolanaTransaction({ feePayer: user, recentBlockhash: latest.blockhash }).add(...instructions);
+    res.json({
+      ok: true,
+      transactionBase64: tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64"),
+      kolApplication: {
+        ...kolApplication,
+        kolBuy: {
+          wallet: kolApplication.wallet,
+          buySol: Number(kolApplication.buySol || 0),
+          tokenAmount: amount.toString(),
+          estimatedSupplyPct: Number(global?.tokenTotalSupply?.toString?.() || 0) > 0
+            ? (Number(amount.toString()) / Number(global.tokenTotalSupply.toString())) * 100
+            : Number(kolApplication.estimatedSupplyPct || 0)
+        }
+      },
+      rpcUrl,
+      blockhash: latest.blockhash,
+      lastValidBlockHeight: latest.lastValidBlockHeight
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Unable to build KOL buy transaction" });
+  }
+});
+
+app.post("/api/solana/send-transaction", async (req, res) => {
+  try {
+    const { Connection: SolanaConnection, Transaction: SolanaTransaction } = await loadSolanaWeb3();
+    const signedTransactionBase64 = String(req.body?.signedTransactionBase64 || req.body?.transactionBase64 || "").trim();
+    if (!signedTransactionBase64) return res.status(400).json({ error: "Signed transaction is required" });
+    const tx = SolanaTransaction.from(Buffer.from(signedTransactionBase64, "base64"));
+    const rpcUrl = String(req.body?.rpcUrl || process.env.SOLANA_RPC_URL || process.env.PUMPFUN_SOLANA_RPC_URL || CHAIN_META[101].rpcUrls[0]).trim();
+    const connection = new SolanaConnection(rpcUrl, "confirmed");
+    await simulateSolanaTransaction(connection, tx, "Signed Solana transaction");
+    const signature = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
+    if (req.body?.blockhash && Number(req.body?.lastValidBlockHeight || 0) > 0) {
+      await connection.confirmTransaction(
+        {
+          signature,
+          blockhash: String(req.body.blockhash),
+          lastValidBlockHeight: Number(req.body.lastValidBlockHeight)
+        },
+        "confirmed"
+      );
+    } else {
+      await connection.confirmTransaction(signature, "confirmed");
+    }
+    res.json({ ok: true, signature, rpcUrl });
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Unable to broadcast Solana transaction" });
   }
 });
 
