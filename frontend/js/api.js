@@ -143,6 +143,7 @@ export const api = {
   pumpfunCoin: (mint) => apiGet(`/api/pumpfun/coin/${encodeURIComponent(String(mint || ""))}`),
   pumpfunLaunch: (body = {}) => apiPost("/api/pumpfun/launch", body),
   pumpfunFinalize: (body = {}) => apiPost("/api/pumpfun/finalize", body),
+  pumpfunSyncLaunches: (launches = []) => apiPost("/api/pumpfun/launches/sync", { launches }),
   officialAirdrop: () => apiGet("/api/airdrop/official"),
   airdropPreview: (options = {}) => {
     const params = new URLSearchParams();

@@ -154,6 +154,23 @@ function saveCachedLaunches(launches) {
   }
 }
 
+async function syncCachedPumpFunLaunches(launches = []) {
+  const rows = visibleLaunchRows(launches).filter((launch) => isPumpFunLaunch(launch));
+  if (!rows.length || !api.pumpfunSyncLaunches) return;
+  try {
+    const payload = await api.pumpfunSyncLaunches(rows);
+    const synced = visibleLaunchRows(payload?.launches || []);
+    if (!synced.length) return;
+    state.launches = mergeLaunchRows(state.launches, synced);
+    saveCachedLaunches(state.launches);
+    updateMoverSignals(state.launches);
+    renderTrending();
+    renderExplore();
+  } catch {
+    // Local cache still renders here; shared sync can retry on the next visit.
+  }
+}
+
 function isPumpVerseLaunchRow(launch = {}) {
   const name = String(launch?.name || "").toLowerCase();
   const symbol = String(launch?.symbol || "").toLowerCase();
@@ -1480,6 +1497,9 @@ async function refreshLaunches(options = {}) {
     renderTopCommunities();
     renderTrending();
     renderExplore();
+    syncCachedPumpFunLaunches(cached).catch(() => {
+      // best-effort cache sync
+    });
   }
 
   try {

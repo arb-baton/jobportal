@@ -4321,6 +4321,21 @@ async function recordPumpFunLaunch(row = {}) {
   return normalized;
 }
 
+async function recordPumpFunLaunches(rows = []) {
+  const normalized = (Array.isArray(rows) ? rows : [])
+    .map(normalizePumpFunLaunch)
+    .filter(Boolean);
+  if (!normalized.length) return [];
+  const store = await readPumpFunLaunchesPersistent({ refresh: true });
+  const incoming = new Set(normalized.map((row) => row.mint.toLowerCase()));
+  const launches = [
+    ...normalized,
+    ...(Array.isArray(store.launches) ? store.launches : []).filter((item) => !incoming.has(String(item?.mint || "").toLowerCase()))
+  ];
+  await writePumpFunLaunchesPersistent({ launches });
+  return normalized;
+}
+
 function pumpFunSigningSecretKey() {
   const seed = String(
     process.env.PUMPFUN_SIGNING_SECRET ||
@@ -4467,6 +4482,17 @@ app.get("/api/pumpfun/coin/:mint", async (req, res) => {
     res.json({ launch });
   } catch (err) {
     res.status(500).json({ error: err?.message || "Unable to load Pump.fun coin" });
+  }
+});
+
+app.post("/api/pumpfun/launches/sync", async (req, res) => {
+  try {
+    const rows = Array.isArray(req.body?.launches) ? req.body.launches.slice(0, 30) : [];
+    const synced = await recordPumpFunLaunches(rows);
+    const store = await readPumpFunLaunchesPersistent({ refresh: false });
+    res.json({ ok: true, synced: synced.length, total: store.launches.length, launches: synced });
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Unable to sync Pump.fun launches" });
   }
 });
 
