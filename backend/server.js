@@ -72,6 +72,13 @@ async function loadPumpFunSdk() {
   return mod.PUMP_SDK || mod.default?.PUMP_SDK || mod.default;
 }
 
+async function loadPumpFunSdkModule() {
+  if (!pumpSdkPromise) {
+    pumpSdkPromise = Promise.resolve(require("@pump-fun/pump-sdk"));
+  }
+  return pumpSdkPromise;
+}
+
 function loadArtifact(relativePath, fallbackAbi = []) {
   try {
     return require(path.join(ROOT, "artifacts", "contracts", ...relativePath));
@@ -4138,6 +4145,32 @@ function pickPumpFunUrl(payload = {}, mint = "") {
   return mint ? `https://pump.fun/coin/${encodeURIComponent(mint)}` : "";
 }
 
+function sanitizeKolApplication(row = {}) {
+  if (!row || typeof row !== "object" || !row.enabled) return null;
+  const wallet = String(row.wallet || "").trim();
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet)) return null;
+  const buySol = Math.max(0, Math.min(toNumberSafe(row.buySol, 0), 100));
+  const estimatedTokens = Math.max(0, toNumberSafe(row.estimatedTokens, 0));
+  const estimatedSupplyPct = Math.max(0, Math.min(toNumberSafe(row.estimatedSupplyPct, 0), 100));
+  return {
+    enabled: true,
+    name: String(row.name || "KOL").trim().slice(0, 80),
+    wallet,
+    image: String(row.image || "").trim().slice(0, 2048),
+    buySol,
+    estimatedTokens,
+    estimatedSupplyPct,
+    kolBuy: row.kolBuy && typeof row.kolBuy === "object"
+      ? {
+          wallet,
+          buySol,
+          tokenAmount: String(row.kolBuy.tokenAmount || "").replace(/[^0-9]/g, "").slice(0, 80),
+          estimatedSupplyPct: Math.max(0, Math.min(toNumberSafe(row.kolBuy.estimatedSupplyPct, estimatedSupplyPct), 100))
+        }
+      : null
+  };
+}
+
 function emptyPumpFunLaunchesStore() {
   return { launches: [] };
 }
@@ -4159,6 +4192,7 @@ function normalizePumpFunLaunch(row = {}) {
     description: String(row.description || "").trim().slice(0, 4000),
     imageUri: String(row.imageUri || row.image || "").trim().slice(0, 2048),
     creator: String(row.creator || row.user || row.creator_address || "").trim(),
+    kolApplication: sanitizeKolApplication(row.kolApplication),
     pumpfunUrl: pickPumpFunUrl(row, mint),
     signature: String(row.signature || "").trim(),
     metadataUri: String(row.metadataUri || row.metadata_uri || "").trim(),
@@ -4201,12 +4235,57 @@ async function readPumpFunCoinSnapshot(mint = "") {
   }
 }
 
+async function readPumpFunMetadataSnapshot(metadataUri = "") {
+  const uri = String(metadataUri || "").trim();
+  if (!uri) return null;
+  try {
+    const response = await withTimeout(
+      fetch(uri, { headers: { accept: "application/json" } }),
+      2500,
+      "Pump.fun metadata snapshot"
+    );
+    if (!response.ok) return null;
+    const metadata = await response.json();
+    const image = String(metadata?.image || metadata?.imageUri || metadata?.image_url || "").trim();
+    const description = String(metadata?.description || "").trim();
+    const name = String(metadata?.name || "").trim();
+    const symbol = String(metadata?.symbol || "").trim();
+    return normalizePumpFunLaunch({
+      mint: "11111111111111111111111111111111",
+      name,
+      symbol,
+      description,
+      imageUri: image.startsWith("/") ? image : image
+    });
+  } catch {
+    return null;
+  }
+}
+
 async function enrichPumpFunLaunches(launches = []) {
   const rows = Array.isArray(launches) ? launches : [];
   return Promise.all(rows.map(async (row) => {
-    if (Number(row?.marketCapUsd || row?.usdMarketCap || 0) > 0) return row;
-    const snapshot = await readPumpFunCoinSnapshot(row?.mint || row?.token);
-    return snapshot ? { ...row, ...snapshot, name: row.name || snapshot.name, description: row.description || snapshot.description } : row;
+    let next = row;
+    if (!String(next?.imageUri || next?.image || "").trim() && next?.metadataUri) {
+      const metadata = await readPumpFunMetadataSnapshot(next.metadataUri);
+      if (metadata?.imageUri) {
+        const base = /^https?:\/\//i.test(metadata.imageUri)
+          ? ""
+          : String(next.metadataUri).startsWith("http")
+            ? new URL(next.metadataUri).origin
+            : "";
+        next = {
+          ...next,
+          imageUri: /^https?:\/\//i.test(metadata.imageUri) ? metadata.imageUri : `${base}${metadata.imageUri}`,
+          description: next.description || metadata.description || "",
+          name: next.name || metadata.name || "",
+          symbol: next.symbol || metadata.symbol || ""
+        };
+      }
+    }
+    if (Number(next?.marketCapUsd || next?.usdMarketCap || 0) > 0) return next;
+    const snapshot = await readPumpFunCoinSnapshot(next?.mint || next?.token);
+    return snapshot ? { ...next, ...snapshot, name: next.name || snapshot.name, description: next.description || snapshot.description, imageUri: next.imageUri || snapshot.imageUri } : next;
   }));
 }
 
@@ -4508,6 +4587,7 @@ app.post("/api/pumpfun/launch", async (req, res) => {
     if (!PUMP_SDK?.createV2Instruction) {
       return res.status(500).json({ error: "Pump.fun SDK is not available in this runtime" });
     }
+    const PUMP_SDK_MODULE = await loadPumpFunSdkModule();
 
     const name = String(req.body?.name || "").trim().slice(0, 32);
     const symbol = String(req.body?.symbol || "").trim().slice(0, 13);
@@ -4518,6 +4598,7 @@ app.post("/api/pumpfun/launch", async (req, res) => {
     if (!userPublicKey) {
       return res.status(400).json({ error: "Connect a Solana wallet first" });
     }
+    const kolApplication = sanitizeKolApplication(req.body?.kolApplication);
 
     let user;
     let creator;
@@ -4550,8 +4631,80 @@ app.post("/api/pumpfun/launch", async (req, res) => {
       latest = await connection.getLatestBlockhash("confirmed");
     }
     const connection = new SolanaConnection(rpcUrl, "confirmed");
-    const instructions = [
-      await PUMP_SDK.createV2Instruction({
+    let kolBuy = null;
+    let instructions = [];
+    if (kolApplication?.enabled && Number(kolApplication.buySol || 0) > 0) {
+      if (!PUMP_SDK?.buyInstruction || !PUMP_SDK_MODULE?.getBuyTokenAmountFromSolAmount || !PUMP_SDK_MODULE?.GLOBAL_PDA) {
+        return res.status(500).json({ error: "Pump.fun buy instruction support is not available in this runtime" });
+      }
+      const BN = require("bn.js");
+      const splToken = require("@solana/spl-token");
+      const globalInfo = await connection.getAccountInfo(PUMP_SDK_MODULE.GLOBAL_PDA, "confirmed");
+      if (!globalInfo) {
+        return res.status(500).json({ error: "Pump.fun global account is unavailable from the configured Solana RPC" });
+      }
+      const global = PUMP_SDK.decodeGlobal(globalInfo);
+      const solAmount = new BN(Math.max(1, Math.floor(Number(kolApplication.buySol || 0) * 1_000_000_000)));
+      const amount = PUMP_SDK_MODULE.getBuyTokenAmountFromSolAmount({
+        global,
+        feeConfig: null,
+        mintSupply: null,
+        bondingCurve: null,
+        amount: solAmount,
+        quoteMint: SolanaPublicKey.default
+      });
+      if (!amount || amount.lte(new BN(0))) {
+        return res.status(400).json({ error: "KOL buy amount is too small for the Pump.fun quote" });
+      }
+      const kolWallet = new SolanaPublicKey(kolApplication.wallet);
+      const kolTokenAccount = splToken.getAssociatedTokenAddressSync(
+        mintKeypair.publicKey,
+        kolWallet,
+        true,
+        splToken.TOKEN_2022_PROGRAM_ID
+      );
+      instructions = [
+        await PUMP_SDK.createV2Instruction({
+          mint: mintKeypair.publicKey,
+          name,
+          symbol,
+          uri: metadataUri,
+          creator,
+          user,
+          mayhemMode: false,
+          cashback: false
+        }),
+        splToken.createAssociatedTokenAccountIdempotentInstruction(
+          user,
+          kolTokenAccount,
+          kolWallet,
+          mintKeypair.publicKey,
+          splToken.TOKEN_2022_PROGRAM_ID
+        ),
+        await PUMP_SDK.buyInstruction({
+          global,
+          mint: mintKeypair.publicKey,
+          creator,
+          user,
+          associatedUser: kolTokenAccount,
+          amount,
+          solAmount,
+          slippage: 1,
+          tokenProgram: splToken.TOKEN_2022_PROGRAM_ID,
+          mayhemMode: false
+        })
+      ];
+      kolBuy = {
+        wallet: kolApplication.wallet,
+        buySol: Number(kolApplication.buySol || 0),
+        tokenAmount: amount.toString(),
+        estimatedSupplyPct: Number(global?.tokenTotalSupply?.toString?.() || 0) > 0
+          ? (Number(amount.toString()) / Number(global.tokenTotalSupply.toString())) * 100
+          : Number(kolApplication.estimatedSupplyPct || 0)
+      };
+    } else {
+      instructions = [
+        await PUMP_SDK.createV2Instruction({
           mint: mintKeypair.publicKey,
           name,
           symbol,
@@ -4562,6 +4715,7 @@ app.post("/api/pumpfun/launch", async (req, res) => {
           cashback: false
         })
       ];
+    }
     const tx = new SolanaTransaction({
       feePayer: user,
       recentBlockhash: latest.blockhash
@@ -4584,6 +4738,7 @@ app.post("/api/pumpfun/launch", async (req, res) => {
       symbol,
       description: String(req.body?.description || "").trim(),
       imageUri: String(req.body?.imageUri || "").trim(),
+      kolApplication: kolApplication ? { ...kolApplication, kolBuy } : null,
       metadataUri,
       mintSecretKey: Buffer.from(mintKeypair.secretKey).toString("base64"),
       rpcUrl,
@@ -4598,6 +4753,7 @@ app.post("/api/pumpfun/launch", async (req, res) => {
       tokenAddress: mint,
       pumpfunUrl: pickPumpFunUrl({}, mint),
       metadataUri,
+      kolApplication: kolApplication ? { ...kolApplication, kolBuy } : null,
       transactionBase64: tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64"),
       signingToken,
       presignSimulationWarning,
@@ -4659,6 +4815,7 @@ app.post("/api/pumpfun/finalize", async (req, res) => {
       description: pending.description,
       imageUri: pending.imageUri,
       creator: pending.creator || pending.user,
+      kolApplication: pending.kolApplication,
       signature,
       metadataUri: pending.metadataUri,
       createdAt: Math.floor(Date.now() / 1000)
@@ -4670,6 +4827,7 @@ app.post("/api/pumpfun/finalize", async (req, res) => {
       mint,
       tokenAddress: mint,
       pumpfunUrl: pickPumpFunUrl({}, mint),
+      kolApplication: pending.kolApplication || null,
       launch: recordedLaunch,
       rpcUrl
     });

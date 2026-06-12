@@ -1489,8 +1489,9 @@ async function refreshLaunches(options = {}) {
   let launchesRes = null;
   let lastError = null;
   const cached = loadCachedLaunches();
-  if (!state.launches.length && cached.length) {
-    state.launches = cached;
+  if (cached.length) {
+    state.launches = mergeLaunchRows(state.launches, cached);
+    saveCachedLaunches(state.launches);
     updateMoverSignals(state.launches);
     renderTopCommunities();
     renderTrending();
