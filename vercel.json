@@ -123,6 +123,14 @@
       "dest": "/frontend/agents.html"
     },
     {
+      "src": "/rpg$",
+      "dest": "/frontend/rpg.html"
+    },
+    {
+      "src": "/rpg/(.*)",
+      "dest": "/frontend/rpg.html"
+    },
+    {
       "src": "/onboard$",
       "dest": "/frontend/onboard.html"
     },
