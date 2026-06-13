@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Get Me a Job | Adventure RPG</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png?v=20260609brand" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/site.css?v=20260613rpg6" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="appSidebar">
+        <div class="sidebar-top">
+          <a class="logo" href="/">
+            <img class="logo-mark" src="/assets/pump-r-logo.png?v=20260609brand" alt="Get Me a Job logo" />
+            <span class="logo-title"><span class="logo-name">Get Me a Job</span></span>
+          </a>
+          <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Collapse sidebar" aria-expanded="true">
+            <svg viewBox="0 0 20 12" aria-hidden="true">
+              <rect x="1.5" y="1" width="1.5" height="10" rx="0.75"></rect>
+              <rect x="17" y="1" width="1.5" height="10" rx="0.75"></rect>
+              <path d="M11.2 3.2L8.2 6l3 2.8"></path>
+            </svg>
+          </button>
+        </div>
+        <nav class="side-nav">
+          <a class="side-link" href="/"><span class="side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"></path><path d="M5.5 9.8V21h13V9.8"></path></svg></span><span class="side-link-label">Home</span></a>
+          <a class="side-link" href="/go"><span class="side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l7 4v8l-7 4-7-4v-8l7-4z"></path><path d="M9 12.2l2 2 4-4"></path></svg></span><span class="side-link-label">Freelance</span></a>
+          <a class="side-link" href="/alpha"><span class="side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8l3 6-7 10-7-10 3-6z"></path><path d="M8 10h8"></path><path d="M12 4v16"></path></svg></span><span class="side-link-label">Job Tips</span></a>
+          <a class="side-link" href="/agents"><span class="side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v4"></path><path d="M7 7.5h10a3 3 0 0 1 3 3v5.5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-5.5a3 3 0 0 1 3-3z"></path><path d="M9 13h.01"></path><path d="M15 13h.01"></path><path d="M9.5 16c1.4.8 3.6.8 5 0"></path></svg></span><span class="side-link-label">Agents</span></a>
+          <a class="side-link active" href="/rpg"><span class="side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15l4-10h8l4 10-8 5-8-5z"></path><path d="M8 5l4 15 4-15"></path><path d="M4 15h16"></path></svg></span><span class="side-link-label">RPG</span></a>
+          <a class="side-link side-link-profile" id="profileNavSide" href="/profile"><span class="side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.2" r="3.7"></circle><path d="M4.6 20c1.8-3.9 4.4-5.9 7.4-5.9s5.6 2 7.4 5.9"></path></svg></span><span class="side-link-label">Profile</span></a>
+        </nav>
+        <a class="side-create-btn" href="/create">Job Application</a>
+      </aside>
+
+      <main class="main-pane rpg-pane">
+        <div class="promo-strip">Official $getmeajob CA: 7BdfmAP5gUAwWAj78Pn3axyLBU7aa6HC8gpfL81Hpump</div>
+        <section class="rpg-shell">
+          <div id="rpgCanvas" class="rpg-canvas"></div>
+
+          <div class="rpg-hud rpg-panel">
+            <div>
+              <small>Career Chain World</small>
+              <h1>Get Me a Job: Hiring Island</h1>
+            </div>
+            <div class="rpg-stat-row">
+              <span><b id="rpgLevel">1</b> LVL</span>
+              <span><b id="rpgXp">0</b> XP</span>
+              <span><b id="rpgCash">100</b> CASH</span>
+              <span><b id="rpgTool">None</b> Tool</span>
+              <span><b id="rpgPlayers">1</b> Online</span>
+            </div>
+            <button id="rpgSoundBtn" class="rpg-sound-btn" type="button">Sound off</button>
+          </div>
+
+          <div class="rpg-quest rpg-panel">
+            <small>Main Quest</small>
+            <h2>Start broke, train skills, land gigs, help players, and build your home after getting paid.</h2>
+            <p>WASD move, click-to-walk, E interact, Space fight blockers, F greet players, Enter chat.</p>
+            <div id="rpgTarget">Explore the map and find a job activity.</div>
+          </div>
+
+          <div class="rpg-activity rpg-panel">
+            <small>Activity</small>
+            <h2 id="rpgActivityTitle">World activities</h2>
+            <p id="rpgActivityBody">Walk near a station to discover job quests.</p>
+            <button id="rpgActivityAction" type="button" disabled>Explore</button>
+          </div>
+
+          <div class="rpg-districts rpg-panel">
+            <small>World Map</small>
+            <h2>Districts</h2>
+            <div>
+              <span>Plaza</span>
+              <span>Dojo</span>
+              <span>Agent Lab</span>
+              <span>KOL Harbor</span>
+              <span>Bank</span>
+              <span>Homes</span>
+            </div>
+          </div>
+
+          <div class="rpg-log rpg-panel">
+            <small>World Feed</small>
+            <ul id="rpgLog"></ul>
+          </div>
+
+          <aside class="rpg-roster rpg-panel">
+            <small>Room</small>
+            <h2>Players</h2>
+            <div id="rpgRoster"></div>
+          </aside>
+
+          <div class="rpg-chat rpg-panel">
+            <div id="rpgMessages" class="rpg-messages"></div>
+            <form id="rpgChatForm">
+              <input id="rpgChatInput" maxlength="160" placeholder="Talk to nearby players..." autocomplete="off" />
+              <button type="submit">Send</button>
+            </form>
+          </div>
+
+          <div class="rpg-controls rpg-panel">
+            <button id="rpgInteractBtn" type="button">Interact</button>
+            <button id="rpgMoneyBtn" type="button">Throw $</button>
+            <button id="rpgBuildBtn" type="button">Build Home</button>
+            <button id="rpgAttackBtn" type="button">Attack</button>
+            <button id="rpgCenterBtn" type="button">Center</button>
+          </div>
+
+          <div class="rpg-wheel rpg-panel">
+            <button id="rpgFriendsBtn" type="button" title="Players">Players</button>
+            <button id="rpgBagBtn" type="button" title="Inventory">Bag</button>
+            <button id="rpgGatherBtn" type="button" title="Use current tool">Tool</button>
+            <button id="rpgStatsBtn" type="button" title="Stats">Stats</button>
+            <button id="rpgMarketBtn" type="button" title="Marketplace">Market</button>
+          </div>
+
+          <div class="rpg-modal rpg-panel" id="rpgInfoPanel" hidden>
+            <div class="rpg-modal-head">
+              <h2 id="rpgInfoTitle">Inventory</h2>
+              <button id="rpgInfoClose" type="button">x</button>
+            </div>
+            <div id="rpgInfoBody" class="rpg-info-body"></div>
+          </div>
+
+          <div class="rpg-namegate" id="rpgNamegate">
+            <form class="rpg-name-card" id="rpgJoinForm">
+              <small>Multiplayer local room</small>
+              <h2>Enter Get Me a Job World</h2>
+              <p>Create a character, explore Hiring Island, train for interviews, run freelance quests, throw money to players, and build once the job pays.</p>
+              <label>
+                Name
+                <input id="rpgNameInput" maxlength="22" value="Yakiroshii" />
+              </label>
+              <label>
+                Role
+                <select id="rpgRoleInput">
+                  <option>Builder</option>
+                  <option>Applicant</option>
+                  <option>Agent</option>
+                  <option>KOL Scout</option>
+                  <option>Freelancer</option>
+                </select>
+              </label>
+              <div>
+                <span class="rpg-avatar-label">Avatar</span>
+                <div class="rpg-avatar-grid" id="rpgAvatarGrid">
+                  <button class="active" type="button" data-avatar="builder" data-color="#7df2aa"><span></span>Builder</button>
+                  <button type="button" data-avatar="agent" data-color="#8ea4ff"><span></span>Agent</button>
+                  <button type="button" data-avatar="scout" data-color="#ffd166"><span></span>Scout</button>
+                  <button type="button" data-avatar="creator" data-color="#ff7d97"><span></span>Creator</button>
+                </div>
+              </div>
+              <button type="submit">Play</button>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/js/sidebar.js?v=20260613rpg6"></script>
+    <script type="module" src="/js/rpg.js?v=20260613rpg6"></script>
+  </body>
+</html>

@@ -28,7 +28,8 @@
     "@solana/web3.js": "^1.98.4",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "three": "^0.184.0"
   },
   "overrides": {
     "rpc-websockets": {

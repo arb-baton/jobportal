@@ -286,6 +286,98 @@ let pumpFunLaunchesDbCache = null;
 let pumpFunLaunchesRemoteLoaded = false;
 const profileLastKnownCache = new Map();
 const xOauthStates = new Map();
+const rpgRoom = {
+  players: new Map(),
+  messages: [],
+  pickups: new Map(),
+  enemies: new Map(),
+  homes: new Map(),
+  clients: new Set(),
+  startedAt: Date.now()
+};
+
+function seedRpgRoom() {
+  if (!rpgRoom.pickups.size) {
+    [
+      ["resume-scroll", -13, 0.35, -10, "Resume Scroll", 20],
+      ["kol-letter", 13, 0.35, -14, "KOL Letter", 25],
+      ["agent-chip", -17, 0.35, 11, "Agent Skill Chip", 30],
+      ["offer-gem", 18, 0.35, 13, "Offer Gem", 45],
+      ["coffee", -2, 0.35, 5, "Focus Coffee", 15],
+      ["portfolio-star", 6, 0.35, 2, "Portfolio Star", 20],
+      ["interview-pass", 2, 0.35, -18, "Interview Pass", 35],
+      ["freelance-ticket", -19, 0.35, -2, "Freelance Ticket", 25]
+    ].forEach(([id, x, y, z, label, xp]) => {
+      rpgRoom.pickups.set(id, { id, x, y, z, label, xp, respawnAt: 0 });
+    });
+  }
+  if (!rpgRoom.enemies.size) {
+    [
+      ["unread-inbox", -9, 0.65, 4, "Unread Inbox", 42],
+      ["ats-bot", 3, 0.65, 9, "ATS Bot", 54],
+      ["rugged-recruiter", 20, 0.65, -9, "Rugged Recruiter", 72],
+      ["ghosted-email", -21, 0.65, 16, "Ghosted Email", 58],
+      ["deadline-cloud", 12, 0.65, 19, "Deadline Cloud", 62]
+    ].forEach(([id, x, y, z, label, hp]) => {
+      rpgRoom.enemies.set(id, { id, x, y, z, label, hp, maxHp: hp, respawnAt: 0 });
+    });
+  }
+}
+
+function pruneRpgRoom() {
+  const cutoff = Date.now() - 12_000;
+  for (const [id, player] of rpgRoom.players.entries()) {
+    if (Number(player.updatedAt || 0) < cutoff) {
+      rpgRoom.players.delete(id);
+    }
+  }
+  const now = Date.now();
+  for (const pickup of rpgRoom.pickups.values()) {
+    if (pickup.respawnAt && pickup.respawnAt <= now) pickup.respawnAt = 0;
+  }
+  for (const enemy of rpgRoom.enemies.values()) {
+    if (enemy.respawnAt && enemy.respawnAt <= now) {
+      enemy.respawnAt = 0;
+      enemy.hp = enemy.maxHp;
+    }
+  }
+}
+
+function sanitizeRpgPlayer(input = {}) {
+  const name = String(input.name || "Job Seeker").trim().slice(0, 22) || "Job Seeker";
+  const role = String(input.role || "Applicant").trim().slice(0, 18) || "Applicant";
+  const color = /^#[0-9a-fA-F]{6}$/.test(String(input.color || "")) ? input.color : "#7df2aa";
+  const x = Math.max(-57, Math.min(57, Number(input.x || 0)));
+  const z = Math.max(-47, Math.min(47, Number(input.z || 0)));
+  const rot = Number.isFinite(Number(input.rot)) ? Number(input.rot) : 0;
+  const activity = String(input.activity || "").trim().slice(0, 34);
+  const avatar = String(input.avatar || "builder").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 18) || "builder";
+  return { name, role, color, x, z, rot, activity, avatar };
+}
+
+function rpgStatePayload() {
+  seedRpgRoom();
+  pruneRpgRoom();
+  return {
+    players: Array.from(rpgRoom.players.values()),
+    pickups: Array.from(rpgRoom.pickups.values()).filter((item) => !item.respawnAt),
+    enemies: Array.from(rpgRoom.enemies.values()).filter((enemy) => !enemy.respawnAt),
+    homes: Array.from(rpgRoom.homes.values()),
+    messages: rpgRoom.messages.slice(-40),
+    serverTime: Date.now()
+  };
+}
+
+function broadcastRpgRoom(event = "state") {
+  const payload = `event: ${event}\ndata: ${JSON.stringify(rpgStatePayload())}\n\n`;
+  for (const client of Array.from(rpgRoom.clients)) {
+    try {
+      client.write(payload);
+    } catch {
+      rpgRoom.clients.delete(client);
+    }
+  }
+}
 
 function resolvePlatformSupportAddress() {
   const candidates = [
@@ -6201,6 +6293,294 @@ app.get("/api/support/inbox", async (req, res) => {
   }
 });
 
+app.get("/api/rpg/state", (_req, res) => {
+  res.json(rpgStatePayload());
+});
+
+app.get("/api/rpg/events", (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no"
+  });
+  res.write(`event: state\ndata: ${JSON.stringify(rpgStatePayload())}\n\n`);
+  rpgRoom.clients.add(res);
+  req.on("close", () => {
+    rpgRoom.clients.delete(res);
+  });
+});
+
+app.post("/api/rpg/join", (req, res) => {
+  seedRpgRoom();
+  const id = crypto.randomBytes(8).toString("hex");
+  const safe = sanitizeRpgPlayer(req.body || {});
+  const player = {
+    id,
+    ...safe,
+    level: 1,
+    xp: 0,
+    cash: 100,
+    salary: 0,
+    jobTitle: "",
+    hp: 100,
+    updatedAt: Date.now()
+  };
+  rpgRoom.players.set(id, player);
+  rpgRoom.messages.push({
+    id: crypto.randomBytes(6).toString("hex"),
+    playerId: "system",
+    name: "Get Me a Job",
+    text: `${player.name} entered the hiring arena.`,
+    createdAt: Date.now()
+  });
+  rpgRoom.messages = rpgRoom.messages.slice(-80);
+  const state = rpgStatePayload();
+  broadcastRpgRoom("join");
+  res.json({ player, state });
+});
+
+app.post("/api/rpg/player", (req, res) => {
+  seedRpgRoom();
+  const id = String(req.body?.id || "");
+  const existing = rpgRoom.players.get(id);
+  if (!existing) {
+    return res.status(404).json({ error: "Player not found" });
+  }
+  const safe = sanitizeRpgPlayer({ ...existing, ...(req.body || {}) });
+  const player = {
+    ...existing,
+    ...safe,
+    hp: Math.max(0, Math.min(100, Number(req.body?.hp ?? existing.hp ?? 100))),
+    cash: Math.max(0, Number(existing.cash || 0)),
+    salary: Math.max(0, Number(existing.salary || 0)),
+    jobTitle: String(existing.jobTitle || "").slice(0, 40),
+    updatedAt: Date.now()
+  };
+  rpgRoom.players.set(id, player);
+  const state = rpgStatePayload();
+  broadcastRpgRoom("state");
+  res.json({ player, state });
+});
+
+app.post("/api/rpg/chat", (req, res) => {
+  const id = String(req.body?.id || "");
+  const player = rpgRoom.players.get(id);
+  const text = String(req.body?.text || "").trim().slice(0, 160);
+  if (!player || !text) {
+    return res.status(400).json({ error: "Missing player or message" });
+  }
+  rpgRoom.messages.push({
+    id: crypto.randomBytes(6).toString("hex"),
+    playerId: id,
+    name: player.name,
+    text,
+    createdAt: Date.now()
+  });
+  rpgRoom.messages = rpgRoom.messages.slice(-80);
+  const state = rpgStatePayload();
+  broadcastRpgRoom("chat");
+  res.json({ state });
+});
+
+app.post("/api/rpg/collect", (req, res) => {
+  const playerId = String(req.body?.id || "");
+  const itemId = String(req.body?.itemId || "");
+  const player = rpgRoom.players.get(playerId);
+  const item = rpgRoom.pickups.get(itemId);
+  if (!player || !item || item.respawnAt) {
+    return res.status(404).json({ error: "Collectible not available" });
+  }
+  const distance = Math.hypot(Number(player.x || 0) - Number(item.x || 0), Number(player.z || 0) - Number(item.z || 0));
+  if (distance > 2.2) {
+    return res.status(400).json({ error: "Move closer to collect" });
+  }
+  player.xp = Number(player.xp || 0) + Number(item.xp || 10);
+  player.level = 1 + Math.floor(player.xp / 100);
+  player.updatedAt = Date.now();
+  item.respawnAt = Date.now() + 20_000;
+  rpgRoom.messages.push({
+    id: crypto.randomBytes(6).toString("hex"),
+    playerId: "system",
+    name: "Quest",
+    text: `${player.name} collected ${item.label} for ${item.xp} XP.`,
+    createdAt: Date.now()
+  });
+  rpgRoom.messages = rpgRoom.messages.slice(-80);
+  const state = rpgStatePayload();
+  broadcastRpgRoom("collect");
+  res.json({ player, state });
+});
+
+app.post("/api/rpg/attack", (req, res) => {
+  const playerId = String(req.body?.id || "");
+  const enemyId = String(req.body?.enemyId || "");
+  const player = rpgRoom.players.get(playerId);
+  const enemy = rpgRoom.enemies.get(enemyId);
+  if (!player || !enemy || enemy.respawnAt) {
+    return res.status(404).json({ error: "Enemy not available" });
+  }
+  const distance = Math.hypot(Number(player.x || 0) - Number(enemy.x || 0), Number(player.z || 0) - Number(enemy.z || 0));
+  if (distance > 3) {
+    return res.status(400).json({ error: "Move closer to attack" });
+  }
+  const damage = 18 + Math.floor(Math.random() * 16) + Math.floor(Number(player.level || 1) * 2);
+  enemy.hp = Math.max(0, Number(enemy.hp || enemy.maxHp || 50) - damage);
+  let defeated = false;
+  if (enemy.hp <= 0) {
+    defeated = true;
+    enemy.respawnAt = Date.now() + 25_000;
+    player.xp = Number(player.xp || 0) + 40;
+    player.level = 1 + Math.floor(player.xp / 100);
+    rpgRoom.messages.push({
+      id: crypto.randomBytes(6).toString("hex"),
+      playerId: "system",
+      name: "Battle",
+      text: `${player.name} defeated ${enemy.label} and earned 40 XP.`,
+      createdAt: Date.now()
+    });
+  }
+  player.updatedAt = Date.now();
+  rpgRoom.messages = rpgRoom.messages.slice(-80);
+  const state = rpgStatePayload();
+  broadcastRpgRoom("battle");
+  res.json({ player, enemy, defeated, state });
+});
+
+app.post("/api/rpg/activity", (req, res) => {
+  const playerId = String(req.body?.id || "");
+  const player = rpgRoom.players.get(playerId);
+  const activity = String(req.body?.activity || "").trim().slice(0, 36);
+  const xp = Math.max(5, Math.min(60, Number(req.body?.xp || 15)));
+  const pay = Math.max(0, Math.min(500, Number(req.body?.pay || 0)));
+  const jobTitle = String(req.body?.jobTitle || "").trim().slice(0, 40);
+  if (!player || !activity) {
+    return res.status(400).json({ error: "Missing player or activity" });
+  }
+  player.activity = activity;
+  player.xp = Number(player.xp || 0) + xp;
+  player.level = 1 + Math.floor(player.xp / 100);
+  if (pay > 0) {
+    player.cash = Math.max(0, Number(player.cash || 0)) + pay;
+    player.salary = Math.max(Number(player.salary || 0), pay);
+    if (jobTitle) player.jobTitle = jobTitle;
+  }
+  player.updatedAt = Date.now();
+  rpgRoom.messages.push({
+    id: crypto.randomBytes(6).toString("hex"),
+    playerId: "system",
+    name: "Activity",
+    text: `${player.name} completed ${activity} and earned ${xp} XP${pay > 0 ? ` plus $${pay}` : ""}.`,
+    createdAt: Date.now()
+  });
+  rpgRoom.messages = rpgRoom.messages.slice(-80);
+  const state = rpgStatePayload();
+  broadcastRpgRoom("activity");
+  res.json({ player, state });
+});
+
+app.post("/api/rpg/throw-money", (req, res) => {
+  const playerId = String(req.body?.id || "");
+  const targetId = String(req.body?.targetId || "");
+  const amount = Math.max(1, Math.min(250, Math.floor(Number(req.body?.amount || 10))));
+  const player = rpgRoom.players.get(playerId);
+  const target = rpgRoom.players.get(targetId);
+  if (!player || !target) {
+    return res.status(400).json({ error: "Missing player or target" });
+  }
+  const distance = Math.hypot(Number(player.x || 0) - Number(target.x || 0), Number(player.z || 0) - Number(target.z || 0));
+  if (distance > 4) {
+    return res.status(400).json({ error: "Move closer to throw money" });
+  }
+  if (Number(player.cash || 0) < amount) {
+    return res.status(400).json({ error: "Not enough game cash" });
+  }
+  player.cash = Number(player.cash || 0) - amount;
+  target.cash = Number(target.cash || 0) + amount;
+  player.activity = "Threw money";
+  target.activity = "Got paid";
+  player.updatedAt = Date.now();
+  target.updatedAt = Date.now();
+  rpgRoom.messages.push({
+    id: crypto.randomBytes(6).toString("hex"),
+    playerId,
+    name: "Money",
+    text: `${player.name} threw $${amount} to ${target.name}.`,
+    createdAt: Date.now()
+  });
+  rpgRoom.messages = rpgRoom.messages.slice(-80);
+  const state = rpgStatePayload();
+  broadcastRpgRoom("money");
+  res.json({ player, target, state });
+});
+
+app.post("/api/rpg/build-home", (req, res) => {
+  const playerId = String(req.body?.id || "");
+  const player = rpgRoom.players.get(playerId);
+  if (!player) {
+    return res.status(400).json({ error: "Missing player" });
+  }
+  const tier = Math.max(1, Math.min(3, Math.floor(Number(req.body?.tier || 1))));
+  const cost = tier === 1 ? 180 : tier === 2 ? 420 : 900;
+  if (Number(player.cash || 0) < cost) {
+    return res.status(400).json({ error: `Need $${cost} game cash to build this home` });
+  }
+  const x = Math.round(Math.max(-55, Math.min(55, Number(req.body?.x ?? player.x ?? 0))));
+  const z = Math.round(Math.max(-45, Math.min(45, Number(req.body?.z ?? player.z ?? 0))));
+  const id = `${playerId}:${Date.now()}`;
+  player.cash = Number(player.cash || 0) - cost;
+  player.activity = "Built a home";
+  player.updatedAt = Date.now();
+  rpgRoom.homes.set(id, {
+    id,
+    ownerId: playerId,
+    ownerName: player.name,
+    x,
+    z,
+    tier,
+    createdAt: Date.now()
+  });
+  rpgRoom.messages.push({
+    id: crypto.randomBytes(6).toString("hex"),
+    playerId,
+    name: "Homes",
+    text: `${player.name} built a tier ${tier} home after getting paid.`,
+    createdAt: Date.now()
+  });
+  rpgRoom.messages = rpgRoom.messages.slice(-80);
+  const state = rpgStatePayload();
+  broadcastRpgRoom("home");
+  res.json({ player, state });
+});
+
+app.post("/api/rpg/interact", (req, res) => {
+  const playerId = String(req.body?.id || "");
+  const targetId = String(req.body?.targetId || "");
+  const kind = String(req.body?.kind || "shared a job lead").trim().slice(0, 60) || "shared a job lead";
+  const player = rpgRoom.players.get(playerId);
+  const target = rpgRoom.players.get(targetId);
+  if (!player || !target) {
+    return res.status(400).json({ error: "Missing player or target" });
+  }
+  const distance = Math.hypot(Number(player.x || 0) - Number(target.x || 0), Number(player.z || 0) - Number(target.z || 0));
+  if (distance > 3) {
+    return res.status(400).json({ error: "Move closer to interact" });
+  }
+  player.activity = "Networking";
+  player.updatedAt = Date.now();
+  rpgRoom.messages.push({
+    id: crypto.randomBytes(6).toString("hex"),
+    playerId,
+    name: "Players",
+    text: `${player.name} ${kind} with ${target.name}.`,
+    createdAt: Date.now()
+  });
+  rpgRoom.messages = rpgRoom.messages.slice(-80);
+  const state = rpgStatePayload();
+  broadcastRpgRoom("interact");
+  res.json({ player, target, state });
+});
+
 app.get("/api/stats", async (req, res) => {
   try {
     const deployment = loadDeploymentConfig();
@@ -6765,6 +7145,10 @@ app.get(["/agents", "/agents/:agentId"], (_req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "agents.html"));
 });
 
+app.get("/rpg", (_req, res) => {
+  res.sendFile(path.join(FRONTEND_DIR, "rpg.html"));
+});
+
 app.get("/onboard", (_req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "onboard.html"));
 });
@@ -6784,6 +7168,20 @@ app.get("/skill.md", (_req, res) => {
 app.get("/vendor/solana-web3.iife.min.js", (_req, res) => {
   res.sendFile(path.join(ROOT, "node_modules", "@solana", "web3.js", "lib", "index.iife.min.js"));
 });
+
+app.use(
+  "/vendor/three",
+  express.static(path.join(ROOT, "node_modules", "three", "build"), {
+    etag: false,
+    lastModified: false,
+    setHeaders: (res) => {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      res.type("text/javascript");
+    }
+  })
+);
 
 app.get("/uploads/:filename", (req, res) => {
   const filename = path.basename(String(req.params.filename || ""));

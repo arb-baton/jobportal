@@ -29,9 +29,25 @@
     if (alphaLink) alphaLink.insertAdjacentElement("afterend", agentsLink);
     else sideNav.appendChild(agentsLink);
   }
-  if (location.pathname.startsWith("/agents")) {
+  if (sideNav && !sideNav.querySelector('a[href="/rpg"]')) {
+    const agentsLink = sideNav.querySelector('a[href="/agents"]');
+    const rpgLink = document.createElement("a");
+    rpgLink.className = "side-link";
+    rpgLink.href = "/rpg";
+    rpgLink.innerHTML = `
+      <span class="side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15l4-10h8l4 10-8 5-8-5z"></path><path d="M8 5l4 15 4-15"></path><path d="M4 15h16"></path></svg></span>
+      <span class="side-link-label">RPG</span>`;
+    if (agentsLink) agentsLink.insertAdjacentElement("afterend", rpgLink);
+    else sideNav.appendChild(rpgLink);
+  }
+  if (location.pathname.startsWith("/agents") || location.pathname.startsWith("/rpg")) {
     sideNav?.querySelectorAll(".side-link").forEach((link) => {
-      link.classList.toggle("active", (link.getAttribute("href") || "") === "/agents");
+      const href = link.getAttribute("href") || "";
+      link.classList.toggle(
+        "active",
+        (location.pathname.startsWith("/agents") && href === "/agents") ||
+          (location.pathname.startsWith("/rpg") && href === "/rpg")
+      );
     });
   }
   const createBtn = sidebar.querySelector(".side-create-btn");
@@ -50,6 +66,7 @@
   if (createBtn) {
     createBtn.insertAdjacentElement("afterend", rewardsCard);
   }
+  const skipCreatorRewards = location.pathname.startsWith("/rpg");
 
   let compact = false;
   let refreshTimer = null;
@@ -271,6 +288,7 @@ function profileHrefForAddress(value) {
   }
 
   function scheduleRefresh(delay = 0) {
+    if (skipCreatorRewards) return;
     if (refreshTimer) clearTimeout(refreshTimer);
     refreshTimer = setTimeout(() => {
       refreshCreatorRewardsCard().catch(() => {
@@ -279,10 +297,12 @@ function profileHrefForAddress(value) {
     }, Math.max(0, delay));
   }
 
-  window.addEventListener("focus", () => scheduleRefresh(80));
-  window.addEventListener("storage", () => scheduleRefresh(80));
-  document.getElementById("connectBtn")?.addEventListener("click", () => scheduleRefresh(900));
-  document.getElementById("disconnectBtn")?.addEventListener("click", () => scheduleRefresh(200));
-  scheduleRefresh(60);
-  setInterval(() => scheduleRefresh(0), REFRESH_INTERVAL_MS);
+  if (!skipCreatorRewards) {
+    window.addEventListener("focus", () => scheduleRefresh(80));
+    window.addEventListener("storage", () => scheduleRefresh(80));
+    document.getElementById("connectBtn")?.addEventListener("click", () => scheduleRefresh(900));
+    document.getElementById("disconnectBtn")?.addEventListener("click", () => scheduleRefresh(200));
+    scheduleRefresh(60);
+    setInterval(() => scheduleRefresh(0), REFRESH_INTERVAL_MS);
+  }
 })();
