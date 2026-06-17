@@ -89,6 +89,7 @@ const state = {
   homes: new Map(),
   npcs: new Map(),
   resources: new Map(),
+  corporates: new Map(),
   keys: new Set(),
   moveTarget: null,
   lastSync: 0,
@@ -101,6 +102,7 @@ const state = {
   nearestNpc: null,
   nearestResource: null,
   nearestStation: null,
+  nearestCorporate: null,
   selectedActivity: null,
   selectedTool: "",
   avatar: "builder",
@@ -123,7 +125,9 @@ const state = {
     fish: 0,
     cookedFish: 0,
     gold: 0,
-    jobProof: 0
+    jobProof: 0,
+    interviewPass: 0,
+    corporatePass: 0
   },
   skills: {
     woodcutting: 0,
@@ -183,11 +187,21 @@ const dailyQuestDefs = [
 ];
 
 const worldStations = [
+  { id: "job-computer", title: "Job Interview Center", x: 13, z: -8, kind: "Computer", action: "Launch job application" },
   { id: "campfire", title: "Campfire Kitchen", x: -43, z: 35, kind: "Cooking", action: "Cook fish" },
   { id: "forge", title: "Armory Forge", x: 11, z: 16, kind: "Smithing", action: "Smith tools" },
   { id: "merchant", title: "Traveling Merchant", x: -8, z: 12, kind: "Merchant", action: "Trade materials" },
   { id: "bank", title: "Salary Bank Vault", x: 40, z: 9, kind: "Bank", action: "Open bank" },
   { id: "bench", title: "Interview Bench", x: -2, z: 4, kind: "Rest", action: "Sit and recover" }
+];
+
+const corporateBuildings = [
+  { id: "apple", name: "Apple", x: 34, z: 22, w: 4.2, d: 4.2, h: 4.6, color: "#d9dde2", roof: "#f8fff9", pass: "corporatePass", role: "Product Designer", accent: "#f8fff9" },
+  { id: "tesla", name: "Tesla", x: 43, z: 22, w: 4.2, d: 4.2, h: 4.2, color: "#2d3035", roof: "#ff596a", pass: "corporatePass", role: "Autonomy Engineer", accent: "#ff7d97" },
+  { id: "spacex", name: "SpaceX", x: 52, z: 22, w: 4.4, d: 4.2, h: 5.2, color: "#1d2630", roof: "#8ea4ff", pass: "corporatePass", role: "Mission Ops", accent: "#8ea4ff" },
+  { id: "microsoft", name: "Microsoft", x: 34, z: 31, w: 4.4, d: 4.4, h: 4.4, color: "#28384a", roof: "#7df2aa", pass: "corporatePass", role: "Cloud Engineer", accent: "#7df2aa" },
+  { id: "google", name: "Google", x: 43, z: 31, w: 4.2, d: 4.2, h: 4.1, color: "#313338", roof: "#ffd166", pass: "corporatePass", role: "Search Quality Analyst", accent: "#ffd166" },
+  { id: "amazon", name: "Amazon", x: 52, z: 31, w: 4.5, d: 4.2, h: 4.4, color: "#252a30", roof: "#ffb04f", pass: "corporatePass", role: "Marketplace PM", accent: "#ffb04f" }
 ];
 
 const blockedRects = [];
@@ -196,6 +210,7 @@ const animatedObjects = [];
 
 const activities = [
   { id: "job-board", title: "Job Board Plaza", x: 0, z: 0, xp: 18, pay: 35, jobTitle: "Job Scout", prompt: "Browse live applications, choose a role, and start a public job quest.", action: "Scout openings" },
+  { id: "job-interview-center", title: "Job Interview Center", x: 13, z: -8, xp: 45, pay: 110, jobTitle: "Applicant", prompt: "Use a computer to launch a real job application token, then practice the interview path.", action: "Use computer" },
   { id: "resume-forge", title: "Resume Forge", x: -10, z: -5, xp: 24, pay: 45, jobTitle: "Resume Builder", prompt: "Hammer raw experience into a sharper resume and collect a stronger pitch.", action: "Upgrade resume" },
   { id: "interview-dojo", title: "Interview Dojo", x: 6, z: -13, xp: 30, pay: 65, jobTitle: "Interview Pro", prompt: "Practice hard questions, dodge awkward silence, and earn confidence XP.", action: "Run mock interview" },
   { id: "agent-lab", title: "Agent Lab", x: -22, z: 12, xp: 26, pay: 55, jobTitle: "Agent Trainer", prompt: "Train SKILLS.md agents to search boards, write updates, and find leads.", action: "Train agent" },
@@ -387,6 +402,7 @@ function addTown() {
 
 function addActivityBuildings() {
   addSign("JOB BOARD", 0, -2.6, "#7df2aa");
+  addInterviewCenter(13, -8);
   addBuilding(-10, -5, 4.6, 3.1, 1.8, "#42352c", "#ff7d97");
   addSign("RESUME FORGE", -10, -7.2, "#ffb6be");
   addBuilding(6, -13, 5, 3.5, 2.2, "#2f3a4a", "#7df2aa");
@@ -407,6 +423,7 @@ function addActivityBuildings() {
   addBuilding(42, -30, 5.2, 4.2, 2, "#332f33", "#ff7d97");
   addSign("STARTUP MINE", 42, -33, "#ffb6be");
   addStage(-44, 33);
+  addCorporateCampus();
 }
 
 function addBridges() {
@@ -445,6 +462,70 @@ function addBuilding(x, z, w, d, h, wallColor, roofColor) {
   group.position.set(x * TILE, 0, z * TILE);
   world.add(group);
   blockedRects.push({ x, z, w: w + 0.7, d: d + 0.7 });
+}
+
+function addInterviewCenter(x, z) {
+  const group = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.BoxGeometry(5.5 * TILE, 2.2 * TILE, 3.8 * TILE), new THREE.MeshStandardMaterial({ color: "#17251d", roughness: 0.55 }));
+  base.position.y = 1.1 * TILE;
+  base.castShadow = true;
+  group.add(base);
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(4.9 * TILE, 1.35 * TILE, 0.14 * TILE), new THREE.MeshStandardMaterial({ color: "#8ea4ff", roughness: 0.25, metalness: 0.08, transparent: true, opacity: 0.72 }));
+  glass.position.set(0, 1.42 * TILE, -1.98 * TILE);
+  group.add(glass);
+  const desk = new THREE.Mesh(new THREE.BoxGeometry(2.2 * TILE, 0.42 * TILE, 0.82 * TILE), new THREE.MeshStandardMaterial({ color: "#7a5031", roughness: 0.72 }));
+  desk.position.set(0, 0.55 * TILE, -1.42 * TILE);
+  group.add(desk);
+  const monitor = new THREE.Mesh(new THREE.BoxGeometry(0.9 * TILE, 0.58 * TILE, 0.08 * TILE), new THREE.MeshStandardMaterial({ color: "#7df2aa", emissive: "#164a2b", roughness: 0.34 }));
+  monitor.position.set(0, 1.02 * TILE, -1.88 * TILE);
+  group.add(monitor);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(5.9 * TILE, 0.34 * TILE, 4.1 * TILE), new THREE.MeshStandardMaterial({ color: "#7df2aa", roughness: 0.46 }));
+  roof.position.y = 2.35 * TILE;
+  roof.castShadow = true;
+  group.add(roof);
+  group.position.set(x * TILE, 0, z * TILE);
+  group.userData.stationId = "job-computer";
+  world.add(group);
+  blockedRects.push({ x, z, w: 6.1, d: 4.3 });
+  addSign("JOB INTERVIEW CENTER", x, z - 3.1, "#7df2aa", 0.95);
+}
+
+function addCorporateCampus() {
+  addSign("CORPORATE CAMPUS", 43, 17, "#f8fff9", 1.2);
+  for (const corp of corporateBuildings) addCorporateBuilding(corp);
+}
+
+function addCorporateBuilding(corp) {
+  const group = new THREE.Group();
+  const floors = Math.max(3, Math.round(corp.h));
+  for (let i = 0; i < floors; i++) {
+    const floor = new THREE.Mesh(
+      new THREE.BoxGeometry(corp.w * TILE, 0.72 * TILE, corp.d * TILE),
+      new THREE.MeshStandardMaterial({ color: i % 2 ? corp.color : "#11161a", roughness: 0.5, metalness: 0.04 })
+    );
+    floor.position.y = (0.38 + i * 0.72) * TILE;
+    floor.castShadow = true;
+    group.add(floor);
+    const windowBand = new THREE.Mesh(
+      new THREE.BoxGeometry((corp.w - 0.45) * TILE, 0.14 * TILE, 0.06 * TILE),
+      new THREE.MeshStandardMaterial({ color: corp.accent, emissive: corp.accent, emissiveIntensity: 0.18, roughness: 0.25 })
+    );
+    windowBand.position.set(0, (0.4 + i * 0.72) * TILE, (-corp.d / 2 - 0.04) * TILE);
+    group.add(windowBand);
+  }
+  const roof = new THREE.Mesh(new THREE.BoxGeometry((corp.w + 0.35) * TILE, 0.32 * TILE, (corp.d + 0.35) * TILE), new THREE.MeshStandardMaterial({ color: corp.roof, roughness: 0.45 }));
+  roof.position.y = (0.8 + floors * 0.72) * TILE;
+  roof.castShadow = true;
+  group.add(roof);
+  const lobby = new THREE.Mesh(new THREE.BoxGeometry(1.25 * TILE, 0.9 * TILE, 0.12 * TILE), new THREE.MeshStandardMaterial({ color: "#07100a", roughness: 0.42 }));
+  lobby.position.set(0, 0.5 * TILE, (-corp.d / 2 - 0.08) * TILE);
+  group.add(lobby);
+  group.position.set(corp.x * TILE, 0, corp.z * TILE);
+  group.userData.corporate = corp;
+  world.add(group);
+  state.corporates.set(corp.id, group);
+  blockedRects.push({ x: corp.x, z: corp.z, w: corp.w + 0.65, d: corp.d + 0.65 });
+  addSign(corp.name.toUpperCase(), corp.x, corp.z - corp.d / 2 - 1.2, corp.accent, 0.82);
 }
 
 function addTower(x, z) {
@@ -1297,6 +1378,7 @@ function updateHud() {
   const nearNpc = findNearestNpc(2.7);
   const nearResource = findNearestResource(2.8);
   const nearStation = findNearestStation(2.8);
+  const nearCorporate = findNearestCorporate(3.2);
   state.nearestPickup = nearPickup?.id || null;
   state.nearestEnemy = nearEnemy?.id || null;
   state.nearestActivity = nearActivity?.id || null;
@@ -1304,8 +1386,9 @@ function updateHud() {
   state.nearestNpc = nearNpc?.id || null;
   state.nearestResource = nearResource?.id || null;
   state.nearestStation = nearStation?.id || null;
+  state.nearestCorporate = nearCorporate?.id || null;
 
-  interactBtn.disabled = !(state.nearestActivity || state.nearestPickup || state.nearestPlayer || state.nearestNpc || state.nearestResource || state.nearestStation);
+  interactBtn.disabled = !(state.nearestActivity || state.nearestPickup || state.nearestPlayer || state.nearestNpc || state.nearestResource || state.nearestStation || state.nearestCorporate);
   moneyBtn.disabled = !state.nearestPlayer;
   buildBtn.disabled = Number(state.player.cash || 0) < 180 || !state.inventory.hammer;
   attackBtn.disabled = !state.nearestEnemy;
@@ -1329,6 +1412,8 @@ function updateHud() {
     targetEl.textContent = `Press E or Tool to use ${node.tool} on ${node.label}.`;
   } else if (nearStation) {
     targetEl.textContent = `Press E or Interact: ${nearStation.action} at ${nearStation.title}.`;
+  } else if (nearCorporate) {
+    targetEl.textContent = `Press E or Interact to enter ${nearCorporate.name}. ${hasCorporatePass() ? "Pass accepted." : "Corporate pass required."}`;
   } else {
     targetEl.textContent = "Click anywhere to walk. Visit stations, collect job items, meet NPCs, and build after getting paid.";
     if (!state.selectedActivity) showActivity(null);
@@ -1413,6 +1498,17 @@ function findNearestStation(range) {
   for (const station of worldStations) {
     const d = Math.hypot(station.x - state.player.x, station.z - state.player.z);
     if (d <= range && (!best || d < best.distance)) best = { ...station, distance: d };
+  }
+  return best;
+}
+
+function findNearestCorporate(range) {
+  if (!state.player) return null;
+  let best = null;
+  for (const corp of corporateBuildings) {
+    const entranceZ = corp.z - corp.d / 2 - 0.9;
+    const d = Math.hypot(corp.x - state.player.x, entranceZ - state.player.z);
+    if (d <= range && (!best || d < best.distance)) best = { ...corp, distance: d };
   }
   return best;
 }
@@ -1607,9 +1703,16 @@ async function pollState(force = false) {
 
 async function collectNearest() {
   if (!state.player || !state.nearestPickup) return false;
+  const pickupId = state.nearestPickup;
   try {
-    const payload = await api.post("/api/rpg/collect", { id: state.player.id, itemId: state.nearestPickup });
+    const payload = await api.post("/api/rpg/collect", { id: state.player.id, itemId: pickupId });
     state.player = payload.player || state.player;
+    if (pickupId === "interview-pass") {
+      state.inventory.interviewPass = 1;
+      state.inventory.corporatePass = 1;
+      showBubble(localMesh, "corporate pass");
+      targetEl.textContent = "Interview Pass collected. You can enter corporate buildings now.";
+    }
     saveProgress();
     sound("collect");
     syncScene(payload.state || {});
@@ -1643,6 +1746,14 @@ async function runActivity() {
   if (!state.player || !state.nearestActivity) return false;
   const activity = activities.find((row) => row.id === state.nearestActivity);
   if (!activity) return false;
+  if (activity.id === "job-board" || activity.id === "job-interview-center") {
+    renderJobComputer();
+    return true;
+  }
+  if (activity.id === "interview-dojo") {
+    startInterviewMiniGame(corporateBuildings[0]);
+    return true;
+  }
   try {
     const payload = await api.post("/api/rpg/activity", {
       id: state.player.id,
@@ -1851,6 +1962,16 @@ function animateToolUse(type, mesh) {
   }
 }
 
+function animateCommunication(mesh) {
+  if (!mesh) return;
+  mesh.rotation.y += 0.32;
+  mesh.scale.set(1.08, 1.08, 1.08);
+  spawnFloatText("good answer", "#7df2aa", state.player?.x || 0, (state.player?.z || 0) - 0.25);
+  setTimeout(() => {
+    mesh.scale.set(1, 1, 1);
+  }, 220);
+}
+
 async function interactPlayer() {
   if (!state.player || !state.nearestPlayer) return false;
   try {
@@ -1904,6 +2025,8 @@ function interactNpc() {
     state.selectedTool = reward;
   }
   const text = lines[npc.name] || `${npc.role}: keep exploring.`;
+  animateCommunication(localMesh);
+  animateCommunication(mesh);
   showBubble(mesh, text);
   showBubble(localMesh, "got a tip");
   state.player.xp = Number(state.player.xp || 0) + 8;
@@ -1949,6 +2072,7 @@ function renderNpcDialogue(npc, text, reward = "") {
 
 async function primaryInteract() {
   if (state.nearestStation) return interactStation();
+  if (state.nearestCorporate) return interactCorporate();
   if (state.nearestActivity) return runActivity();
   if (state.nearestPickup) return collectNearest();
   if (state.nearestPlayer) return interactPlayer();
@@ -1960,6 +2084,10 @@ async function primaryInteract() {
 function interactStation() {
   const station = worldStations.find((row) => row.id === state.nearestStation);
   if (!station) return false;
+  if (station.id === "job-computer") {
+    renderJobComputer();
+    return true;
+  }
   if (station.id === "campfire") return cookFish();
   if (station.id === "forge") return smithItem();
   if (station.id === "merchant") {
@@ -1981,6 +2109,165 @@ function interactStation() {
     return true;
   }
   return false;
+}
+
+function hasCorporatePass() {
+  return Boolean(state.inventory.corporatePass || state.inventory.interviewPass || Number(state.player?.level || 1) >= 3 || Number(state.inventory.jobProof || 0) >= 1);
+}
+
+function awardCorporatePass(reason = "Corporate pass unlocked") {
+  state.inventory.corporatePass = 1;
+  showBubble(localMesh, "pass unlocked");
+  targetEl.textContent = reason;
+  saveProgress();
+}
+
+function interactCorporate() {
+  const corp = corporateBuildings.find((row) => row.id === state.nearestCorporate);
+  if (!corp) return false;
+  if (!hasCorporatePass()) {
+    renderInfoPanel("Corporate Pass");
+    showBubble(localMesh, "need pass");
+    targetEl.textContent = `${corp.name} requires a corporate pass. Complete the Job Interview Center or craft Job Proof first.`;
+    return false;
+  }
+  renderCorporateInterior(corp);
+  state.player.activity = `Inside ${corp.name}`;
+  state.skills.networking = Number(state.skills.networking || 0) + 5;
+  sound("chat");
+  syncPlayer(true);
+  return true;
+}
+
+function renderCorporateInterior(corp) {
+  if (!infoPanel || !infoTitle || !infoBody) return;
+  infoPanel.hidden = false;
+  infoTitle.textContent = `${corp.name} Campus`;
+  const floors = ["Lobby", "Interview Room", "Hiring Manager", "Team Floor", "Rooftop"];
+  infoBody.innerHTML = `
+    <div class="rpg-corporate-room">
+      <div class="rpg-room-stage" style="--corp:${escapeHtml(corp.accent)}">
+        <span class="rpg-room-player"></span>
+        <span class="rpg-room-desk"></span>
+        <span class="rpg-room-screen"></span>
+        <span class="rpg-room-plant one"></span>
+        <span class="rpg-room-plant two"></span>
+      </div>
+      <p>You are inside ${escapeHtml(corp.name)}. Walk the floors, practice a real conversation, and launch a matching job application from the computer.</p>
+      <div class="rpg-floor-list">
+        ${floors.map((floor, index) => `<button type="button" data-floor="${index}"><strong>${escapeHtml(floor)}</strong><span>${index === 0 ? "Security cleared" : `Floor ${index}`}</span></button>`).join("")}
+      </div>
+      <div class="rpg-dialogue-actions">
+        <button type="button" data-corp-apply="1">Launch ${escapeHtml(corp.role)} application</button>
+        <button type="button" data-corp-practice="1">Practice interview</button>
+        <button type="button" data-dialogue-action="close">Leave building</button>
+      </div>
+    </div>
+  `;
+  infoBody.querySelectorAll("[data-floor]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const floorName = button.querySelector("strong")?.textContent || "Floor";
+      showBubble(localMesh, floorName);
+      targetEl.textContent = `${corp.name}: ${floorName} visited. Recruiters noticed your pass.`;
+      state.player.xp = Number(state.player.xp || 0) + 6;
+      state.player.level = 1 + Math.floor(Number(state.player.xp || 0) / 100);
+      saveProgress();
+    });
+  });
+  infoBody.querySelector("[data-corp-apply]")?.addEventListener("click", () => {
+    const url = `/create?from=rpg&company=${encodeURIComponent(corp.name)}&jobTitle=${encodeURIComponent(corp.role)}`;
+    window.location.href = url;
+  });
+  infoBody.querySelector("[data-corp-practice]")?.addEventListener("click", () => startInterviewMiniGame(corp));
+  infoBody.querySelector("[data-dialogue-action='close']")?.addEventListener("click", () => {
+    if (infoPanel) infoPanel.hidden = true;
+  });
+}
+
+function renderJobComputer() {
+  if (!infoPanel || !infoTitle || !infoBody) return;
+  infoPanel.hidden = false;
+  infoTitle.textContent = "Job Interview Center";
+  infoBody.innerHTML = `
+    <div class="rpg-computer-card">
+      <div class="rpg-computer-screen">
+        <strong>GET ME A JOB OS</strong>
+        <span>Job Application Terminal</span>
+        <i></i>
+      </div>
+      <p>Use the in-world computer to launch a real Job Application token flow. Finish the mock interview to unlock a corporate pass.</p>
+      <label>Target company
+        <select id="rpgComputerCompany">
+          ${corporateBuildings.map((corp) => `<option value="${escapeHtml(corp.id)}">${escapeHtml(corp.name)} - ${escapeHtml(corp.role)}</option>`).join("")}
+        </select>
+      </label>
+      <div class="rpg-dialogue-actions">
+        <button type="button" data-computer-launch="1">Launch Job Application</button>
+        <button type="button" data-computer-interview="1">Mock interview for pass</button>
+        <button type="button" data-dialogue-action="close">Close computer</button>
+      </div>
+    </div>
+  `;
+  infoBody.querySelector("[data-computer-launch]")?.addEventListener("click", () => {
+    const selected = corporateBuildings.find((corp) => corp.id === infoBody.querySelector("#rpgComputerCompany")?.value) || corporateBuildings[0];
+    window.location.href = `/create?from=rpg&company=${encodeURIComponent(selected.name)}&jobTitle=${encodeURIComponent(selected.role)}`;
+  });
+  infoBody.querySelector("[data-computer-interview]")?.addEventListener("click", () => {
+    const selected = corporateBuildings.find((corp) => corp.id === infoBody.querySelector("#rpgComputerCompany")?.value) || corporateBuildings[0];
+    startInterviewMiniGame(selected);
+  });
+  infoBody.querySelector("[data-dialogue-action='close']")?.addEventListener("click", () => {
+    if (infoPanel) infoPanel.hidden = true;
+  });
+}
+
+function startInterviewMiniGame(corp = corporateBuildings[0]) {
+  if (!infoPanel || !infoTitle || !infoBody) return;
+  infoPanel.hidden = false;
+  infoTitle.textContent = `${corp.name} Interview`;
+  const questions = [
+    ["Tell me about a time you shipped under pressure.", "STAR story"],
+    ["Why this role?", corp.role],
+    ["What will you do in the first 30 days?", "Plan"],
+    ["Show proof you can execute.", "Portfolio"]
+  ];
+  let score = 0;
+  const render = () => {
+    infoBody.innerHTML = `
+      <div class="rpg-interview-card">
+        <div class="rpg-interview-meter"><b style="width:${Math.min(100, score * 25)}%"></b></div>
+        <p>${score >= questions.length ? `Offer path unlocked at ${escapeHtml(corp.name)}.` : `Answer interview prompts to earn a corporate pass.`}</p>
+        <div class="rpg-interview-prompts">
+          ${questions.map(([q, tag], index) => `<button type="button" data-answer="${index}" ${index < score ? "disabled" : ""}><strong>${escapeHtml(q)}</strong><span>${index < score ? "Answered" : tag}</span></button>`).join("")}
+        </div>
+        <div class="rpg-dialogue-actions">
+          <button type="button" data-launch-after="1" ${score >= questions.length ? "" : "disabled"}>Launch ${escapeHtml(corp.role)} application</button>
+          <button type="button" data-dialogue-action="close">Back</button>
+        </div>
+      </div>
+    `;
+    infoBody.querySelectorAll("[data-answer]").forEach((button) => {
+      button.addEventListener("click", () => {
+        score += 1;
+        state.player.xp = Number(state.player.xp || 0) + 12;
+        state.skills.networking = Number(state.skills.networking || 0) + 8;
+        animateCommunication(localMesh);
+        sound("chat");
+        if (score >= questions.length) {
+          awardCorporatePass(`${corp.name} interview cleared. Corporate pass unlocked.`);
+          state.player.cash = Number(state.player.cash || 0) + 75;
+        }
+        state.player.level = 1 + Math.floor(Number(state.player.xp || 0) / 100);
+        saveProgress();
+        render();
+      });
+    });
+    infoBody.querySelector("[data-launch-after]")?.addEventListener("click", () => {
+      window.location.href = `/create?from=rpg&company=${encodeURIComponent(corp.name)}&jobTitle=${encodeURIComponent(corp.role)}`;
+    });
+    infoBody.querySelector("[data-dialogue-action='close']")?.addEventListener("click", () => renderJobComputer());
+  };
+  render();
 }
 
 function cookFish() {
@@ -2240,7 +2527,9 @@ function renderInfoPanel(mode) {
       ["fish", "Fish", state.inventory.fish],
       ["cookedFish", "Cooked Fish", state.inventory.cookedFish],
       ["gold", "Gold", state.inventory.gold],
-      ["jobProof", "Job Proof", state.inventory.jobProof]
+      ["jobProof", "Job Proof", state.inventory.jobProof],
+      ["interviewPass", "Interview Pass", state.inventory.interviewPass ? "Unlocked" : "Find the pass"],
+      ["corporatePass", "Corporate Pass", state.inventory.corporatePass ? "Unlocked" : "Clear an interview"]
     ];
     const tools = new Set(["axe", "pickaxe", "rod", "hammer", "sword"]);
     infoBody.innerHTML = `
@@ -2259,6 +2548,27 @@ function renderInfoPanel(mode) {
         targetEl.textContent = state.selectedTool ? `${state.selectedTool} selected.` : "Tool cleared.";
         renderInfoPanel("Inventory");
       });
+    });
+    return;
+  }
+  if (mode === "Corporate Pass") {
+    infoBody.innerHTML = `
+      <div class="rpg-pass-card">
+        <strong>Corporate Pass Required</strong>
+        <p>Big-name offices unlock after you prove you are ready. Get an Interview Pass pickup, finish the Job Interview Center mini interview, or craft Job Proof at the forge.</p>
+        <div class="rpg-dialogue-actions">
+          <button type="button" data-open-job-center="1">Go to Job Center</button>
+          <button type="button" data-dialogue-action="close">Back</button>
+        </div>
+      </div>
+    `;
+    infoBody.querySelector("[data-open-job-center]")?.addEventListener("click", () => {
+      if (infoPanel) infoPanel.hidden = true;
+      state.moveTarget = { x: 13, z: -11 };
+      targetEl.textContent = "Routing you to the Job Interview Center.";
+    });
+    infoBody.querySelector("[data-dialogue-action='close']")?.addEventListener("click", () => {
+      if (infoPanel) infoPanel.hidden = true;
     });
     return;
   }
