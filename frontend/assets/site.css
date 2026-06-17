@@ -13921,6 +13921,12 @@ button[disabled] {
   justify-content: space-between;
 }
 
+.rpg-floor-list button:disabled {
+  opacity: 0.52;
+  background: #0b0c0d;
+  cursor: default;
+}
+
 .rpg-floor-list span,
 .rpg-interview-prompts span {
   color: #7df2aa;

@@ -529,15 +529,42 @@ function addHomePlots(x, z) {
 
 function addBuilding(x, z, w, d, h, wallColor, roofColor) {
   const group = new THREE.Group();
-  const wall = new THREE.Mesh(new THREE.BoxGeometry(w * TILE, h * TILE, d * TILE), new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.68 }));
+  const wallMat = new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.52, metalness: 0.03 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: "#d9ffe9", emissive: "#123724", emissiveIntensity: 0.09, roughness: 0.18, metalness: 0.08 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: "#f8fff9", roughness: 0.48 });
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(w * TILE, h * TILE, d * TILE), wallMat);
   wall.position.y = (h * TILE) / 2;
   wall.castShadow = true;
   group.add(wall);
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * TILE * 0.78, 1.1, 4), new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.55 }));
-  roof.position.y = h * TILE + 0.52;
-  roof.rotation.y = Math.PI / 4;
+  const roof = new THREE.Mesh(new THREE.BoxGeometry((w + 0.35) * TILE, 0.38 * TILE, (d + 0.35) * TILE), new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.4, metalness: 0.03 }));
+  roof.position.y = h * TILE + 0.2;
   roof.castShadow = true;
   group.add(roof);
+  const parapet = new THREE.Mesh(new THREE.BoxGeometry((w + 0.55) * TILE, 0.15 * TILE, (d + 0.55) * TILE), new THREE.MeshStandardMaterial({ color: "#111514", roughness: 0.62 }));
+  parapet.position.y = h * TILE + 0.53;
+  group.add(parapet);
+  const awning = new THREE.Mesh(new THREE.BoxGeometry(Math.min(w * 0.65, 3.2) * TILE, 0.16 * TILE, 0.42 * TILE), new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.34 }));
+  awning.position.set(0, 0.98 * TILE, (-d / 2 - 0.22) * TILE);
+  group.add(awning);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.72 * TILE, 0.96 * TILE, 0.08 * TILE), new THREE.MeshStandardMaterial({ color: "#07100a", emissive: roofColor, emissiveIntensity: 0.035, roughness: 0.32 }));
+  door.position.set(0, 0.48 * TILE, (-d / 2 - 0.06) * TILE);
+  group.add(door);
+  const cols = Math.max(2, Math.floor(w / 1.35));
+  const rows = Math.max(1, Math.floor(h / 0.95));
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const wx = (-w / 2 + 0.58 + col * ((w - 1.16) / Math.max(1, cols - 1))) * TILE;
+      if (Math.abs(wx) < 0.48 && row === 0) continue;
+      const win = new THREE.Mesh(new THREE.BoxGeometry(0.46 * TILE, 0.34 * TILE, 0.06 * TILE), glassMat);
+      win.position.set(wx, (0.86 + row * 0.62) * TILE, (-d / 2 - 0.07) * TILE);
+      group.add(win);
+    }
+  }
+  for (const sx of [-1, 1]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.12 * TILE, 1.2 * TILE, 0.12 * TILE), trimMat);
+    post.position.set((sx * (w / 2 - 0.22)) * TILE, 0.6 * TILE, (-d / 2 - 0.11) * TILE);
+    group.add(post);
+  }
   group.position.set(x * TILE, 0, z * TILE);
   world.add(group);
   blockedRects.push({ x, z, w: w + 0.7, d: d + 0.7 });
@@ -545,28 +572,41 @@ function addBuilding(x, z, w, d, h, wallColor, roofColor) {
 
 function addInterviewCenter(x, z) {
   const group = new THREE.Group();
-  const base = new THREE.Mesh(new THREE.BoxGeometry(5.5 * TILE, 2.2 * TILE, 3.8 * TILE), new THREE.MeshStandardMaterial({ color: "#17251d", roughness: 0.55 }));
-  base.position.y = 1.1 * TILE;
+  const base = new THREE.Mesh(new THREE.BoxGeometry(7.2 * TILE, 2.6 * TILE, 5.2 * TILE), new THREE.MeshStandardMaterial({ color: "#101813", roughness: 0.38, metalness: 0.04 }));
+  base.position.y = 1.3 * TILE;
   base.castShadow = true;
   group.add(base);
-  const glass = new THREE.Mesh(new THREE.BoxGeometry(4.9 * TILE, 1.35 * TILE, 0.14 * TILE), new THREE.MeshStandardMaterial({ color: "#8ea4ff", roughness: 0.25, metalness: 0.08, transparent: true, opacity: 0.72 }));
-  glass.position.set(0, 1.42 * TILE, -1.98 * TILE);
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(6.7 * TILE, 1.65 * TILE, 0.14 * TILE), new THREE.MeshStandardMaterial({ color: "#7df2aa", roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.7, emissive: "#164a2b", emissiveIntensity: 0.1 }));
+  glass.position.set(0, 1.52 * TILE, -2.68 * TILE);
   group.add(glass);
-  const desk = new THREE.Mesh(new THREE.BoxGeometry(2.2 * TILE, 0.42 * TILE, 0.82 * TILE), new THREE.MeshStandardMaterial({ color: "#7a5031", roughness: 0.72 }));
-  desk.position.set(0, 0.55 * TILE, -1.42 * TILE);
+  const desk = new THREE.Mesh(new THREE.BoxGeometry(3.2 * TILE, 0.42 * TILE, 0.82 * TILE), new THREE.MeshStandardMaterial({ color: "#7a5031", roughness: 0.72 }));
+  desk.position.set(0, 0.55 * TILE, -2.05 * TILE);
   group.add(desk);
-  const monitor = new THREE.Mesh(new THREE.BoxGeometry(0.9 * TILE, 0.58 * TILE, 0.08 * TILE), new THREE.MeshStandardMaterial({ color: "#7df2aa", emissive: "#164a2b", roughness: 0.34 }));
-  monitor.position.set(0, 1.02 * TILE, -1.88 * TILE);
+  const monitor = new THREE.Mesh(new THREE.BoxGeometry(1.35 * TILE, 0.78 * TILE, 0.08 * TILE), new THREE.MeshStandardMaterial({ color: "#7df2aa", emissive: "#164a2b", emissiveIntensity: 0.35, roughness: 0.24 }));
+  monitor.position.set(0, 1.08 * TILE, -2.58 * TILE);
   group.add(monitor);
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(5.9 * TILE, 0.34 * TILE, 4.1 * TILE), new THREE.MeshStandardMaterial({ color: "#7df2aa", roughness: 0.46 }));
-  roof.position.y = 2.35 * TILE;
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(7.65 * TILE, 0.42 * TILE, 5.65 * TILE), new THREE.MeshStandardMaterial({ color: "#7df2aa", roughness: 0.34, metalness: 0.04 }));
+  roof.position.y = 2.84 * TILE;
   roof.castShadow = true;
   group.add(roof);
+  const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 3.1, 24), new THREE.MeshBasicMaterial({ color: "#7df2aa", transparent: true, opacity: 0.18 }));
+  beacon.position.set(2.75 * TILE, 1.6 * TILE, -3.25 * TILE);
+  group.add(beacon);
+  animatedObjects.push({ mesh: beacon, type: "beacon", phase: Math.random() * 10 });
+  const launchSign = makeNameSprite("LAUNCH JOB APPLICATION HERE", "#07100a", "rgba(125,242,170,0.96)");
+  launchSign.position.set(0, 3.35 * TILE, -2.9 * TILE);
+  launchSign.scale.set(5.6, 1.05, 1);
+  group.add(launchSign);
+  const marker = new THREE.Mesh(new THREE.TorusGeometry(1.45, 0.07, 8, 42), new THREE.MeshBasicMaterial({ color: "#7df2aa", transparent: true, opacity: 0.86 }));
+  marker.rotation.x = Math.PI / 2;
+  marker.position.set(0, 0.08, -3.22 * TILE);
+  group.add(marker);
+  animatedObjects.push({ mesh: marker, type: "pulseRing", phase: Math.random() * 10 });
   group.position.set(x * TILE, 0, z * TILE);
   group.userData.stationId = "job-computer";
   world.add(group);
-  blockedRects.push({ x, z, w: 6.1, d: 4.3 });
-  addSign("JOB INTERVIEW CENTER", x, z - 3.1, "#7df2aa", 0.95);
+  blockedRects.push({ x, z, w: 7.7, d: 5.7 });
+  addSign("JOB INTERVIEW CENTER", x, z - 4.05, "#7df2aa", 1.15);
 }
 
 function addCorporateCampus() {
@@ -716,6 +756,36 @@ function addCorporateBuilding(corp) {
   state.corporates.set(corp.id, group);
   blockedRects.push({ x: corp.x, z: corp.z, w: corp.w + 0.65, d: corp.d + 0.65 });
   addSign(corp.name.toUpperCase(), corp.x, corp.z - corp.d / 2 - 1.2, corp.accent, 0.82);
+  addCorporatePhotoKiosk(corp);
+}
+
+function addCorporatePhotoKiosk(corp) {
+  if (!corp.photo) return;
+  const frame = new THREE.Group();
+  const backing = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.45, 0.12), new THREE.MeshStandardMaterial({ color: "#07100a", roughness: 0.48, metalness: 0.06 }));
+  backing.position.y = 1.12;
+  frame.add(backing);
+  const glow = new THREE.Mesh(new THREE.BoxGeometry(2.34, 1.58, 0.08), new THREE.MeshBasicMaterial({ color: corp.accent, transparent: true, opacity: 0.16 }));
+  glow.position.y = 1.12;
+  glow.position.z = -0.04;
+  frame.add(glow);
+  const label = makeNameSprite("REAL HQ REF", corp.accent, "rgba(0,0,0,0.72)");
+  label.scale.set(1.8, 0.42, 1);
+  label.position.set(0, 2.05, -0.09);
+  frame.add(label);
+  frame.position.set((corp.x - corp.w / 2 - 1.15) * TILE, 0, (corp.z - corp.d / 2 - 1.1) * TILE);
+  frame.rotation.y = -0.38;
+  world.add(frame);
+  animatedObjects.push({ mesh: glow, type: "doorGlow", phase: Math.random() * 10 });
+
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin("anonymous");
+  loader.load(corp.photo, (texture) => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const photo = new THREE.Mesh(new THREE.PlaneGeometry(1.94, 1.12), new THREE.MeshBasicMaterial({ map: texture }));
+    photo.position.set(0, 1.12, -0.105);
+    frame.add(photo);
+  });
 }
 
 function addTower(x, z) {
@@ -1233,23 +1303,49 @@ function makeEnemyMesh(enemy) {
 function makeHomeMesh(home) {
   const tier = Math.max(1, Math.min(3, Number(home.tier || 1)));
   const group = new THREE.Group();
-  const baseColor = tier === 1 ? "#6b4b35" : tier === 2 ? "#4b5f7a" : "#2d254c";
-  const roofColor = tier === 1 ? "#7df2aa" : tier === 2 ? "#ffd166" : "#ff7d97";
-  const base = new THREE.Mesh(new THREE.BoxGeometry(1.7 + tier * 0.35, 0.9 + tier * 0.3, 1.55 + tier * 0.28), new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.65 }));
-  base.position.y = (0.9 + tier * 0.3) / 2;
+  const baseColor = tier === 1 ? "#f0e1c2" : tier === 2 ? "#d8e6f2" : "#e9e5f6";
+  const trimColor = tier === 1 ? "#6b4b35" : tier === 2 ? "#2f4f72" : "#3d2b63";
+  const roofColor = tier === 1 ? "#2f4935" : tier === 2 ? "#24344b" : "#44263f";
+  const footprintW = 2.2 + tier * 0.5;
+  const footprintD = 1.9 + tier * 0.45;
+  const height = 1.1 + tier * 0.38;
+  const porch = new THREE.Mesh(new THREE.BoxGeometry((footprintW + 0.5), 0.12, 0.7), new THREE.MeshStandardMaterial({ color: "#b89c72", roughness: 0.78 }));
+  porch.position.set(0, 0.08, -(footprintD / 2 + 0.28));
+  group.add(porch);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(footprintW, height, footprintD), new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.48 }));
+  base.position.y = height / 2;
   base.castShadow = true;
   group.add(base);
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(1.35 + tier * 0.28, 0.82, 4), new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.55 }));
-  roof.position.y = 1.25 + tier * 0.3;
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(footprintW, footprintD) * 0.78, 0.88 + tier * 0.15, 4), new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.44 }));
+  roof.position.y = height + 0.45 + tier * 0.05;
   roof.rotation.y = Math.PI / 4;
   roof.castShadow = true;
   group.add(roof);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.78, 0.06), new THREE.MeshStandardMaterial({ color: trimColor, roughness: 0.42 }));
+  door.position.set(0, 0.4, -(footprintD / 2 + 0.04));
+  group.add(door);
+  const windowMat = new THREE.MeshStandardMaterial({ color: "#d9ffe9", emissive: "#123724", emissiveIntensity: 0.08, roughness: 0.18 });
+  for (const sx of [-0.75, 0.75]) {
+    const win = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.36, 0.06), windowMat);
+    win.position.set(sx, 0.78, -(footprintD / 2 + 0.05));
+    group.add(win);
+  }
+  if (tier >= 2) {
+    const garage = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.82, 0.08), new THREE.MeshStandardMaterial({ color: "#38424a", roughness: 0.52 }));
+    garage.position.set(footprintW / 2 - 0.65, 0.43, footprintD / 2 + 0.04);
+    group.add(garage);
+  }
+  if (tier >= 3) {
+    const pool = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.72, 0.08, 32), mat.water);
+    pool.position.set(-(footprintW / 2 + 0.8), 0.07, 0.1);
+    group.add(pool);
+  }
   const label = makeNameSprite(`${home.ownerName || "Player"}'s Home`, "#f8fff9");
   label.position.y = 2.45 + tier * 0.2;
   group.add(label);
   group.position.set((home.x || 0) * TILE, 0, (home.z || 0) * TILE);
   world.add(group);
-  group.userData.blocker = { w: 2.5 + tier * 0.35, d: 2.3 + tier * 0.28 };
+  group.userData.blocker = { w: footprintW + 0.8, d: footprintD + 0.9 };
   return group;
 }
 
@@ -1601,8 +1697,8 @@ function updateHud() {
   const nearPlayer = findNearestPlayer(2.8);
   const nearNpc = findNearestNpc(2.7);
   const nearResource = findNearestResource(2.8);
-  const nearStation = findNearestStation(2.8);
-  const nearCorporate = findNearestCorporate(3.2);
+  const nearStation = findNearestStation(3.7);
+  const nearCorporate = findNearestCorporate(4.8);
   state.nearestPickup = nearPickup?.id || null;
   state.nearestEnemy = nearEnemy?.id || null;
   state.nearestActivity = nearActivity?.id || null;
@@ -1637,9 +1733,9 @@ function updateHud() {
   } else if (nearStation) {
     targetEl.textContent = `Press E or Interact: ${nearStation.action} at ${nearStation.title}.`;
   } else if (nearCorporate) {
-    targetEl.textContent = `Press E or Interact to enter ${nearCorporate.name}. ${hasCorporatePass() ? "Pass accepted." : "Corporate pass required."}`;
+    targetEl.textContent = `Press E or Interact to enter ${nearCorporate.name}. Lobby is open; pass unlocks interview floors.`;
   } else {
-    targetEl.textContent = "Click anywhere to walk. Visit stations, collect job items, meet NPCs, and build after getting paid.";
+    targetEl.textContent = "Launch jobs at the glowing Job Interview Center. Explore offices, stores, tools, homes, and paid activities.";
     if (!state.selectedActivity) showActivity(null);
   }
 }
@@ -1649,9 +1745,9 @@ function showActivity(activity) {
   state.selectedActivity = activity?.id || null;
   if (!activity) {
     activityTitleEl.textContent = "World activities";
-    activityBodyEl.textContent = "Walk near a station to discover job quests, interviews, freelance gigs, agent training, or KOL routes.";
-    activityActionEl.textContent = "Explore";
-    activityActionEl.disabled = true;
+    activityBodyEl.textContent = "Start at the glowing Job Interview Center to launch a job application, then earn passes, cash, and home upgrades around the island.";
+    activityActionEl.textContent = "Go to Job Center";
+    activityActionEl.disabled = false;
     return;
   }
   activityTitleEl.textContent = activity.title;
@@ -1967,7 +2063,13 @@ async function attackNearest() {
 }
 
 async function runActivity() {
-  if (!state.player || !state.nearestActivity) return false;
+  if (!state.player) return false;
+  if (!state.nearestActivity) {
+    state.moveTarget = { x: 13, z: -11.5 };
+    targetEl.textContent = "Routing you to the glowing Job Interview Center. Press E there to launch a job application.";
+    showBubble(localMesh, "to job center");
+    return true;
+  }
   const activity = activities.find((row) => row.id === state.nearestActivity);
   if (!activity) return false;
   if (activity.id === "job-board" || activity.id === "job-interview-center") {
@@ -2435,12 +2537,6 @@ function awardCorporatePass(reason = "Corporate pass unlocked") {
 function interactCorporate() {
   const corp = corporateBuildings.find((row) => row.id === state.nearestCorporate);
   if (!corp) return false;
-  if (!hasCorporatePass()) {
-    renderInfoPanel("Corporate Pass");
-    showBubble(localMesh, "need pass");
-    targetEl.textContent = `${corp.name} requires a corporate pass. Complete the Job Interview Center or craft Job Proof first.`;
-    return false;
-  }
   renderCorporateInterior(corp);
   state.player.activity = `Inside ${corp.name}`;
   state.skills.networking = Number(state.skills.networking || 0) + 5;
@@ -2453,6 +2549,7 @@ function renderCorporateInterior(corp) {
   if (!infoPanel || !infoTitle || !infoBody) return;
   infoPanel.hidden = false;
   infoTitle.textContent = `${corp.name} Campus`;
+  const pass = hasCorporatePass();
   const floors = ["Lobby", "Interview Room", "Hiring Manager", "Team Floor", "Rooftop"];
   infoBody.innerHTML = `
     <div class="rpg-corporate-room">
@@ -2464,13 +2561,16 @@ function renderCorporateInterior(corp) {
         <span class="rpg-room-plant one"></span>
         <span class="rpg-room-plant two"></span>
       </div>
-      <p>You are inside the ${escapeHtml(corp.name)} campus. Walk the floors, practice a real conversation, and launch a matching job application from the computer.</p>
+      <p>You are inside the ${escapeHtml(corp.name)} lobby. The lobby is open now; interview floors unlock with an Interview Pass, Corporate Pass, Job Proof, or level 3.</p>
       <div class="rpg-floor-list">
-        ${floors.map((floor, index) => `<button type="button" data-floor="${index}"><strong>${escapeHtml(floor)}</strong><span>${index === 0 ? "Security cleared" : `Floor ${index}`}</span></button>`).join("")}
+        ${floors.map((floor, index) => {
+          const locked = index > 0 && !pass;
+          return `<button type="button" data-floor="${index}" ${locked ? "disabled" : ""}><strong>${escapeHtml(floor)}</strong><span>${index === 0 ? "Lobby open" : locked ? "Pass needed" : `Floor ${index}`}</span></button>`;
+        }).join("")}
       </div>
       <div class="rpg-dialogue-actions">
-        <button type="button" data-corp-apply="1">Launch ${escapeHtml(corp.role)} application</button>
-        <button type="button" data-corp-practice="1">Practice interview</button>
+        <button type="button" data-corp-apply="1">Launch ${escapeHtml(corp.role)} job application</button>
+        <button type="button" data-corp-practice="1">${pass ? "Practice interview" : "Earn pass in lobby mini interview"}</button>
         <button type="button" data-dialogue-action="close">Leave building</button>
       </div>
     </div>
@@ -3081,6 +3181,13 @@ function animate(now) {
     } else if (item.type === "drone") {
       item.mesh.rotation.y += dt * 1.9;
       item.mesh.position.y += Math.sin(t * 2.4 + item.phase) * dt * 0.18;
+    } else if (item.type === "beacon") {
+      const pulse = 0.78 + Math.sin(t * 3.2 + item.phase) * 0.18;
+      item.mesh.scale.set(pulse, 1 + Math.sin(t * 2.2 + item.phase) * 0.08, pulse);
+    } else if (item.type === "pulseRing") {
+      const pulse = 1 + Math.sin(t * 4 + item.phase) * 0.16;
+      item.mesh.scale.set(pulse, pulse, pulse);
+      if (item.mesh.material) item.mesh.material.opacity = 0.55 + Math.sin(t * 4 + item.phase) * 0.25;
     } else if (item.type === "floatText") {
       const age = now - item.born;
       item.mesh.position.y += dt * 1.15;
