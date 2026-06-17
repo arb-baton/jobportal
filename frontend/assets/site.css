@@ -13985,6 +13985,129 @@ button[disabled] {
   background: #102316;
 }
 
+.rpg-reference-photo {
+  margin: 0;
+  border: 1px solid rgba(125, 242, 170, 0.26);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #101113;
+}
+
+.rpg-reference-photo img {
+  display: block;
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+}
+
+.rpg-reference-photo figcaption {
+  color: #d9ffe9;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+  padding: 0.62rem 0.72rem;
+}
+
+.rpg-store-card,
+.rpg-workflow-card {
+  display: grid;
+  gap: 0.78rem;
+  border: 1px solid color-mix(in srgb, var(--store, #7df2aa) 48%, #2a2b2f);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 78% 12%, color-mix(in srgb, var(--store, #7df2aa) 20%, transparent), transparent 32%),
+    linear-gradient(180deg, #111713, #080908);
+  padding: 0.85rem;
+}
+
+.rpg-store-hero {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 0.18rem 0.72rem;
+  align-items: center;
+}
+
+.rpg-store-hero span {
+  grid-row: span 2;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--store, #7df2aa) 80%, #fff), var(--store, #7df2aa)),
+    #7df2aa;
+  box-shadow: inset 0 -16px 0 rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(255,255,255,0.16);
+}
+
+.rpg-store-hero strong {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.rpg-store-hero small {
+  color: var(--store, #7df2aa);
+}
+
+.rpg-action-steps {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.rpg-action-steps div,
+.rpg-action-steps button {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 0.55rem;
+  align-items: center;
+  border: 1px solid #2a2b2f;
+  border-radius: 10px;
+  background: #101113;
+  color: #f8fff9;
+  padding: 0.62rem;
+  font: inherit;
+  text-align: left;
+}
+
+.rpg-action-steps button {
+  cursor: pointer;
+}
+
+.rpg-action-steps b {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #7df2aa;
+  color: #07100a;
+  font-size: 0.76rem;
+}
+
+.rpg-action-steps span {
+  color: #d9ffe9;
+  font-weight: 900;
+}
+
+.rpg-action-steps button.done {
+  border-color: rgba(125, 242, 170, 0.55);
+  background: #102316;
+}
+
+.rpg-progress-track {
+  height: 10px;
+  border: 1px solid #2a2b2f;
+  border-radius: 999px;
+  background: #070807;
+  overflow: hidden;
+}
+
+.rpg-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7df2aa, #ffd166);
+  transition: width 180ms ease;
+}
+
 .rpg-activity {
   left: 1rem;
   top: 7rem;

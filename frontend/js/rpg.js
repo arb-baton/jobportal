@@ -192,16 +192,95 @@ const worldStations = [
   { id: "forge", title: "Armory Forge", x: 11, z: 16, kind: "Smithing", action: "Smith tools" },
   { id: "merchant", title: "Traveling Merchant", x: -8, z: 12, kind: "Merchant", action: "Trade materials" },
   { id: "bank", title: "Salary Bank Vault", x: 40, z: 9, kind: "Bank", action: "Open bank" },
-  { id: "bench", title: "Interview Bench", x: -2, z: 4, kind: "Rest", action: "Sit and recover" }
+  { id: "bench", title: "Interview Bench", x: -2, z: 4, kind: "Rest", action: "Sit and recover" },
+  { id: "store-apple", title: "Apple Store", x: 25, z: 31, kind: "Store", action: "Build portfolio kit" },
+  { id: "store-tesla", title: "Tesla Showroom", x: 25, z: 36, kind: "Store", action: "Prototype demo" },
+  { id: "store-spacex", title: "SpaceX Mission Shop", x: 25, z: 41, kind: "Store", action: "Mission brief" },
+  { id: "store-microsoft", title: "Microsoft Studio", x: 32, z: 43, kind: "Store", action: "Cloud practice" },
+  { id: "store-google", title: "Google Cafe", x: 39, z: 43, kind: "Store", action: "Search sprint" },
+  { id: "store-amazon", title: "Amazon Locker", x: 46, z: 43, kind: "Store", action: "Delivery quest" }
+];
+
+const storeFronts = [
+  { id: "store-apple", name: "Apple Store", x: 25, z: 31, accent: "#f8fff9", wall: "#121514", reward: "Portfolio Kit", skill: "design", cash: 35, xp: 28 },
+  { id: "store-tesla", name: "Tesla Showroom", x: 25, z: 36, accent: "#ff596a", wall: "#181b1f", reward: "Prototype Demo", skill: "coding", cash: 45, xp: 34 },
+  { id: "store-spacex", name: "SpaceX Mission Shop", x: 25, z: 41, accent: "#8ea4ff", wall: "#111923", reward: "Mission Brief", skill: "sales", cash: 45, xp: 34 },
+  { id: "store-microsoft", name: "Microsoft Studio", x: 32, z: 43, accent: "#7df2aa", wall: "#172331", reward: "Cloud Pitch", skill: "coding", cash: 40, xp: 32 },
+  { id: "store-google", name: "Google Cafe", x: 39, z: 43, accent: "#ffd166", wall: "#1a1a18", reward: "Search Notes", skill: "networking", cash: 30, xp: 30 },
+  { id: "store-amazon", name: "Amazon Locker", x: 46, z: 43, accent: "#ffb04f", wall: "#1c2024", reward: "Fulfillment Badge", skill: "sales", cash: 38, xp: 31 }
 ];
 
 const corporateBuildings = [
-  { id: "apple", name: "Apple", x: 34, z: 22, w: 4.2, d: 4.2, h: 4.6, color: "#d9dde2", roof: "#f8fff9", pass: "corporatePass", role: "Product Designer", accent: "#f8fff9" },
-  { id: "tesla", name: "Tesla", x: 43, z: 22, w: 4.2, d: 4.2, h: 4.2, color: "#2d3035", roof: "#ff596a", pass: "corporatePass", role: "Autonomy Engineer", accent: "#ff7d97" },
-  { id: "spacex", name: "SpaceX", x: 52, z: 22, w: 4.4, d: 4.2, h: 5.2, color: "#1d2630", roof: "#8ea4ff", pass: "corporatePass", role: "Mission Ops", accent: "#8ea4ff" },
-  { id: "microsoft", name: "Microsoft", x: 34, z: 31, w: 4.4, d: 4.4, h: 4.4, color: "#28384a", roof: "#7df2aa", pass: "corporatePass", role: "Cloud Engineer", accent: "#7df2aa" },
-  { id: "google", name: "Google", x: 43, z: 31, w: 4.2, d: 4.2, h: 4.1, color: "#313338", roof: "#ffd166", pass: "corporatePass", role: "Search Quality Analyst", accent: "#ffd166" },
-  { id: "amazon", name: "Amazon", x: 52, z: 31, w: 4.5, d: 4.2, h: 4.4, color: "#252a30", roof: "#ffb04f", pass: "corporatePass", role: "Marketplace PM", accent: "#ffb04f" }
+  {
+    id: "apple",
+    name: "Apple",
+    x: 34,
+    z: 22,
+    w: 7.4,
+    d: 7.4,
+    h: 2.4,
+    color: "#d9dde2",
+    roof: "#f8fff9",
+    pass: "corporatePass",
+    role: "Product Designer",
+    accent: "#f8fff9",
+    style: "ring",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Aerial_view_of_Apple_Park_dllu.jpg/500px-Aerial_view_of_Apple_Park_dllu.jpg",
+    note: "Ring-shaped Apple Park inspired campus with center courtyard."
+  },
+  {
+    id: "tesla",
+    name: "Tesla",
+    x: 48,
+    z: 22,
+    w: 8.8,
+    d: 3.8,
+    h: 2.8,
+    color: "#2d3035",
+    roof: "#ff596a",
+    pass: "corporatePass",
+    role: "Autonomy Engineer",
+    accent: "#ff7d97",
+    style: "factory",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Gigafactory_Texas_Building_1_June_2022.jpg/660px-Gigafactory_Texas_Building_1_June_2022.jpg",
+    note: "Long Gigafactory-style production building with glass banding."
+  },
+  {
+    id: "spacex",
+    name: "SpaceX",
+    x: 58,
+    z: 22,
+    w: 5.4,
+    d: 5,
+    h: 5.8,
+    color: "#1d2630",
+    roof: "#8ea4ff",
+    pass: "corporatePass",
+    role: "Mission Ops",
+    accent: "#8ea4ff",
+    style: "launch",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Starbase.jpg/660px-Starbase.jpg",
+    note: "Starbase-inspired launch and mission operations yard."
+  },
+  {
+    id: "microsoft",
+    name: "Microsoft",
+    x: 34,
+    z: 34,
+    w: 7.8,
+    d: 5.8,
+    h: 3.8,
+    color: "#28384a",
+    roof: "#7df2aa",
+    pass: "corporatePass",
+    role: "Cloud Engineer",
+    accent: "#7df2aa",
+    style: "campus",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Microsoft_Redmond_Campus_redevelopment_aerial_view%2C_Sept._2021.jpg/500px-Microsoft_Redmond_Campus_redevelopment_aerial_view%2C_Sept._2021.jpg",
+    note: "Redmond campus-inspired multi-building tech village."
+  },
+  { id: "google", name: "Google", x: 47, z: 34, w: 5.5, d: 5.2, h: 3.5, color: "#313338", roof: "#ffd166", pass: "corporatePass", role: "Search Quality Analyst", accent: "#ffd166", style: "colorCampus", note: "Bright campus with search lab floors and color blocks." },
+  { id: "amazon", name: "Amazon", x: 57, z: 34, w: 6.4, d: 4.4, h: 3.6, color: "#252a30", roof: "#ffb04f", pass: "corporatePass", role: "Marketplace PM", accent: "#ffb04f", style: "warehouse", note: "Operations center with delivery lanes and marketplace studio." }
 ];
 
 const blockedRects = [];
@@ -493,33 +572,144 @@ function addInterviewCenter(x, z) {
 function addCorporateCampus() {
   addSign("CORPORATE CAMPUS", 43, 17, "#f8fff9", 1.2);
   for (const corp of corporateBuildings) addCorporateBuilding(corp);
+  addCorporateCampusDetails();
+}
+
+function addCorporateCampusDetails() {
+  const roadMat = new THREE.MeshStandardMaterial({ color: "#30343a", roughness: 0.82 });
+  const lineMat = new THREE.MeshStandardMaterial({ color: "#f8fff9", roughness: 0.6 });
+  for (const row of [
+    { x: 45, z: 28, w: 36, d: 1.1 },
+    { x: 45, z: 18, w: 36, d: 1.1 },
+    { x: 29, z: 31, w: 1.1, d: 24 },
+    { x: 62, z: 31, w: 1.1, d: 24 }
+  ]) {
+    const road = new THREE.Mesh(new THREE.BoxGeometry(row.w * TILE, 0.05, row.d * TILE), roadMat);
+    road.position.set(row.x * TILE, 0.035, row.z * TILE);
+    road.receiveShadow = true;
+    world.add(road);
+  }
+  for (let i = 0; i < 20; i++) {
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 1.15), lineMat);
+    stripe.position.set((31 + (i % 10) * 2.7) * TILE, 0.08, (39 + Math.floor(i / 10) * 2.1) * TILE);
+    stripe.rotation.y = Math.PI / 2;
+    world.add(stripe);
+  }
+  for (const gate of [
+    { x: 43, z: 18, color: "#7df2aa" },
+    { x: 58, z: 28, color: "#8ea4ff" },
+    { x: 32, z: 28, color: "#ffd166" }
+  ]) {
+    const arch = new THREE.Group();
+    const left = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.4, 0.18), new THREE.MeshStandardMaterial({ color: gate.color, emissive: gate.color, emissiveIntensity: 0.12 }));
+    const right = left.clone();
+    left.position.set(-0.72, 0.7, 0);
+    right.position.set(0.72, 0.7, 0);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.16, 0.18), left.material);
+    top.position.y = 1.38;
+    arch.add(left, right, top);
+    arch.position.set(gate.x * TILE, 0, gate.z * TILE);
+    world.add(arch);
+  }
+  for (let i = 0; i < 4; i++) {
+    const drone = new THREE.Mesh(new THREE.OctahedronGeometry(0.32), new THREE.MeshStandardMaterial({ color: i % 2 ? "#7df2aa" : "#8ea4ff", emissive: i % 2 ? "#164a2b" : "#1e2b5d", roughness: 0.32 }));
+    drone.position.set((33 + i * 7) * TILE, 3.4 + i * 0.2, (18 + (i % 2) * 10) * TILE);
+    world.add(drone);
+    animatedObjects.push({ mesh: drone, type: "drone", phase: Math.random() * 10 });
+  }
 }
 
 function addCorporateBuilding(corp) {
   const group = new THREE.Group();
-  const floors = Math.max(3, Math.round(corp.h));
-  for (let i = 0; i < floors; i++) {
-    const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(corp.w * TILE, 0.72 * TILE, corp.d * TILE),
-      new THREE.MeshStandardMaterial({ color: i % 2 ? corp.color : "#11161a", roughness: 0.5, metalness: 0.04 })
-    );
-    floor.position.y = (0.38 + i * 0.72) * TILE;
-    floor.castShadow = true;
-    group.add(floor);
-    const windowBand = new THREE.Mesh(
-      new THREE.BoxGeometry((corp.w - 0.45) * TILE, 0.14 * TILE, 0.06 * TILE),
-      new THREE.MeshStandardMaterial({ color: corp.accent, emissive: corp.accent, emissiveIntensity: 0.18, roughness: 0.25 })
-    );
-    windowBand.position.set(0, (0.4 + i * 0.72) * TILE, (-corp.d / 2 - 0.04) * TILE);
-    group.add(windowBand);
+  const glassMat = new THREE.MeshStandardMaterial({ color: corp.accent, emissive: corp.accent, emissiveIntensity: 0.13, roughness: 0.16, metalness: 0.08, transparent: true, opacity: 0.68 });
+  const wallMat = new THREE.MeshStandardMaterial({ color: corp.color, roughness: 0.44, metalness: 0.05 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: corp.roof, roughness: 0.38, metalness: 0.04 });
+
+  if (corp.style === "ring") {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(2.9, 0.62, 12, 96), wallMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.95 * TILE;
+    ring.castShadow = true;
+    group.add(ring);
+    const glassRing = new THREE.Mesh(new THREE.TorusGeometry(2.9, 0.08, 8, 96), glassMat);
+    glassRing.rotation.x = Math.PI / 2;
+    glassRing.position.y = 1.68 * TILE;
+    group.add(glassRing);
+    const courtyard = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.55, 0.08, 36), new THREE.MeshStandardMaterial({ color: "#59a86a", roughness: 0.8 }));
+    courtyard.position.y = 0.08;
+    group.add(courtyard);
+  } else if (corp.style === "factory") {
+    const shell = new THREE.Mesh(new THREE.BoxGeometry(corp.w * TILE, 2.25 * TILE, corp.d * TILE), wallMat);
+    shell.position.y = 1.12 * TILE;
+    shell.castShadow = true;
+    group.add(shell);
+    for (let i = 0; i < 4; i++) {
+      const band = new THREE.Mesh(new THREE.BoxGeometry((corp.w - 0.5) * TILE, 0.16 * TILE, 0.08), glassMat);
+      band.position.set(0, (0.62 + i * 0.44) * TILE, (-corp.d / 2 - 0.04) * TILE);
+      group.add(band);
+    }
+    const roof = new THREE.Mesh(new THREE.BoxGeometry((corp.w + 0.25) * TILE, 0.22 * TILE, (corp.d + 0.25) * TILE), roofMat);
+    roof.position.y = 2.34 * TILE;
+    roof.castShadow = true;
+    group.add(roof);
+    for (const sx of [-2.7, 0, 2.7]) {
+      const car = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.34, 0.62), new THREE.MeshStandardMaterial({ color: sx === 0 ? "#f8fff9" : "#ff596a", roughness: 0.28, metalness: 0.2 }));
+      car.position.set(sx, 0.25, -2.45);
+      group.add(car);
+    }
+  } else if (corp.style === "launch") {
+    const ops = new THREE.Mesh(new THREE.BoxGeometry(3.2 * TILE, 2.1 * TILE, 2.5 * TILE), wallMat);
+    ops.position.set(-0.9 * TILE, 1.05 * TILE, 0);
+    ops.castShadow = true;
+    group.add(ops);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.65, 1.85, 0.28, 30), new THREE.MeshStandardMaterial({ color: "#2f343a", roughness: 0.62 }));
+    pad.position.set(2.3 * TILE, 0.15, 0.2 * TILE);
+    group.add(pad);
+    const rocket = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 3.6, 20), new THREE.MeshStandardMaterial({ color: "#f8fff9", roughness: 0.32, metalness: 0.18 }));
+    rocket.position.set(2.3 * TILE, 2.0, 0.2 * TILE);
+    rocket.castShadow = true;
+    group.add(rocket);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.8, 20), roofMat);
+    nose.position.set(2.3 * TILE, 4.2, 0.2 * TILE);
+    group.add(nose);
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(0.32, 4.2, 0.32), new THREE.MeshStandardMaterial({ color: "#57606b", roughness: 0.5, metalness: 0.18 }));
+    tower.position.set(3.2 * TILE, 2.1, -0.65 * TILE);
+    group.add(tower);
+    animatedObjects.push({ mesh: rocket, type: "rocketIdle", phase: Math.random() * 10 });
+  } else if (corp.style === "campus" || corp.style === "colorCampus") {
+    const palette = corp.style === "colorCampus" ? ["#4285f4", "#ea4335", "#fbbc04", "#34a853"] : [corp.color, "#1d2e42", "#273f55", "#192b3a"];
+    for (let i = 0; i < 4; i++) {
+      const block = new THREE.Mesh(new THREE.BoxGeometry(2.55 * TILE, (1.65 + i * 0.26) * TILE, 2.25 * TILE), new THREE.MeshStandardMaterial({ color: palette[i], roughness: 0.44, metalness: 0.04 }));
+      block.position.set((i % 2 ? 1.7 : -1.7) * TILE, (0.82 + i * 0.13) * TILE, (i > 1 ? 1.3 : -1.3) * TILE);
+      block.castShadow = true;
+      group.add(block);
+      const band = new THREE.Mesh(new THREE.BoxGeometry(2.2 * TILE, 0.12 * TILE, 0.08), glassMat);
+      band.position.set(block.position.x, block.position.y + 0.2, block.position.z - 1.18 * TILE);
+      group.add(band);
+    }
+    const walkway = new THREE.Mesh(new THREE.BoxGeometry(5.4 * TILE, 0.08, 1.0 * TILE), new THREE.MeshStandardMaterial({ color: "#d7d2c3", roughness: 0.82 }));
+    walkway.position.set(0, 0.05, -0.05 * TILE);
+    group.add(walkway);
+  } else {
+    const shell = new THREE.Mesh(new THREE.BoxGeometry(corp.w * TILE, corp.h * TILE, corp.d * TILE), wallMat);
+    shell.position.y = (corp.h / 2) * TILE;
+    shell.castShadow = true;
+    group.add(shell);
+    const loading = new THREE.Mesh(new THREE.BoxGeometry((corp.w + 0.2) * TILE, 0.26 * TILE, (corp.d + 0.2) * TILE), roofMat);
+    loading.position.y = (corp.h + 0.16) * TILE;
+    loading.castShadow = true;
+    group.add(loading);
+    for (let i = 0; i < 5; i++) {
+      const lane = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 2.2), new THREE.MeshStandardMaterial({ color: corp.accent, emissive: corp.accent, emissiveIntensity: 0.18 }));
+      lane.position.set((-2 + i) * 0.8, 0.09, (-corp.d / 2 - 1.0) * TILE);
+      group.add(lane);
+    }
   }
-  const roof = new THREE.Mesh(new THREE.BoxGeometry((corp.w + 0.35) * TILE, 0.32 * TILE, (corp.d + 0.35) * TILE), new THREE.MeshStandardMaterial({ color: corp.roof, roughness: 0.45 }));
-  roof.position.y = (0.8 + floors * 0.72) * TILE;
-  roof.castShadow = true;
-  group.add(roof);
-  const lobby = new THREE.Mesh(new THREE.BoxGeometry(1.25 * TILE, 0.9 * TILE, 0.12 * TILE), new THREE.MeshStandardMaterial({ color: "#07100a", roughness: 0.42 }));
+
+  const lobby = new THREE.Mesh(new THREE.BoxGeometry(1.25 * TILE, 0.9 * TILE, 0.12 * TILE), new THREE.MeshStandardMaterial({ color: "#07100a", roughness: 0.42, emissive: corp.accent, emissiveIntensity: 0.04 }));
   lobby.position.set(0, 0.5 * TILE, (-corp.d / 2 - 0.08) * TILE);
   group.add(lobby);
+  animatedObjects.push({ mesh: lobby, type: "doorGlow", phase: Math.random() * 10 });
   group.position.set(corp.x * TILE, 0, corp.z * TILE);
   group.userData.corporate = corp;
   world.add(group);
@@ -707,11 +897,45 @@ function addWorldDetails() {
   addBillboard("SHARE LEADS", -36, -14, "#8ea4ff");
   addBoats();
   addOfficeBlocks();
+  addModernStores();
   addMoneyFountain(38, 8);
   addCampfire(-43, 35);
   addForge(11, 16);
   addMerchantWagon(-8, 12);
   addBench(-2, 4);
+}
+
+function addModernStores() {
+  addSign("TECH STORE ROW", 35.5, 38.2, "#f8fff9", 1.05);
+  for (const store of storeFronts) {
+    const group = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.BoxGeometry(4.6, 1.65, 3.1), new THREE.MeshStandardMaterial({ color: store.wall, roughness: 0.42, metalness: 0.06 }));
+    base.position.y = 0.82;
+    base.castShadow = true;
+    group.add(base);
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.1, 0.09), new THREE.MeshStandardMaterial({ color: store.accent, emissive: store.accent, emissiveIntensity: 0.12, roughness: 0.12, transparent: true, opacity: 0.62 }));
+    glass.position.set(0, 0.96, -1.6);
+    group.add(glass);
+    const canopy = new THREE.Mesh(new THREE.BoxGeometry(4.85, 0.26, 3.34), new THREE.MeshStandardMaterial({ color: store.accent, roughness: 0.36 }));
+    canopy.position.y = 1.82;
+    canopy.castShadow = true;
+    group.add(canopy);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.05, 0.12), new THREE.MeshStandardMaterial({ color: "#07100a", roughness: 0.32, emissive: store.accent, emissiveIntensity: 0.06 }));
+    door.position.set(0, 0.56, -1.66);
+    group.add(door);
+    const sign = makeNameSprite(store.name.toUpperCase(), store.accent, "rgba(0,0,0,0.68)");
+    sign.scale.set(2.55, 0.64, 1);
+    sign.position.set(0, 2.42, -1.72);
+    group.add(sign);
+    const display = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.42, 0.72), new THREE.MeshStandardMaterial({ color: "#f8fff9", roughness: 0.22, metalness: 0.1 }));
+    display.position.set(-1.28, 0.34, -1.82);
+    group.add(display);
+    group.userData.stationId = store.id;
+    group.position.set(store.x * TILE, 0, store.z * TILE);
+    world.add(group);
+    blockedRects.push({ x: store.x, z: store.z, w: 4.9, d: 3.4 });
+    animatedObjects.push({ mesh: door, type: "doorGlow", phase: Math.random() * 10 });
+  }
 }
 
 function addCampfire(x, z) {
@@ -1754,6 +1978,47 @@ async function runActivity() {
     startInterviewMiniGame(corporateBuildings[0]);
     return true;
   }
+  renderActivitySequence(activity);
+  return true;
+}
+
+function renderActivitySequence(activity) {
+  if (!infoPanel || !infoTitle || !infoBody) return;
+  infoPanel.hidden = false;
+  infoTitle.textContent = activity.title;
+  const steps = [
+    `Read the ${activity.jobTitle || "job"} brief`,
+    `Do the ${activity.action.toLowerCase()} task`,
+    `Submit proof and collect $${activity.pay || 0}`
+  ];
+  infoBody.innerHTML = `
+    <div class="rpg-workflow-card">
+      <small>${escapeHtml(activity.jobTitle || "Job Quest")}</small>
+      <p>${escapeHtml(activity.prompt || "Complete this activity to earn XP and game cash.")}</p>
+      <div class="rpg-action-steps">
+        ${steps.map((step, index) => `<button type="button" data-work-step="${index}"><b>${index + 1}</b><span>${escapeHtml(step)}</span></button>`).join("")}
+      </div>
+      <div class="rpg-progress-track"><i style="width:0%"></i></div>
+      <button class="rpg-sell-btn" type="button" data-finish-work="1" disabled>Finish task</button>
+    </div>
+  `;
+  const finished = new Set();
+  const progress = infoBody.querySelector(".rpg-progress-track i");
+  const finish = infoBody.querySelector("[data-finish-work]");
+  infoBody.querySelectorAll("[data-work-step]").forEach((button) => {
+    button.addEventListener("click", () => {
+      finished.add(button.dataset.workStep);
+      button.classList.add("done");
+      if (progress) progress.style.width = `${Math.round((finished.size / steps.length) * 100)}%`;
+      if (finish) finish.disabled = finished.size < steps.length;
+      showBubble(localMesh, button.querySelector("span")?.textContent || "step");
+      sound("chat");
+    });
+  });
+  finish?.addEventListener("click", () => completeActivity(activity));
+}
+
+async function completeActivity(activity) {
   try {
     const payload = await api.post("/api/rpg/activity", {
       id: state.player.id,
@@ -1775,6 +2040,7 @@ async function runActivity() {
     showBubble(localMesh, `+${activity.xp} XP`);
     syncScene(payload.state || {});
     targetEl.textContent = `${activity.title} complete. +${activity.xp} XP${activity.pay ? ` and $${activity.pay}` : ""}.`;
+    if (infoPanel) infoPanel.hidden = true;
     return true;
   } catch {
     targetEl.textContent = "Activity failed. Try again.";
@@ -2084,6 +2350,10 @@ async function primaryInteract() {
 function interactStation() {
   const station = worldStations.find((row) => row.id === state.nearestStation);
   if (!station) return false;
+  if (station.id?.startsWith("store-")) {
+    renderStorePanel(station);
+    return true;
+  }
   if (station.id === "job-computer") {
     renderJobComputer();
     return true;
@@ -2109,6 +2379,46 @@ function interactStation() {
     return true;
   }
   return false;
+}
+
+function renderStorePanel(station) {
+  const store = storeFronts.find((row) => row.id === station.id);
+  if (!store || !infoPanel || !infoTitle || !infoBody) return false;
+  infoPanel.hidden = false;
+  infoTitle.textContent = store.name;
+  infoBody.innerHTML = `
+    <div class="rpg-store-card" style="--store:${escapeHtml(store.accent)}">
+      <div class="rpg-store-hero">
+        <span></span>
+        <strong>${escapeHtml(store.name)}</strong>
+        <small>${escapeHtml(station.action)}</small>
+      </div>
+      <p>Step inside, complete the short career task, and add something useful to your applicant inventory.</p>
+      <div class="rpg-action-steps">
+        <div><b>1</b><span>Scan the brief</span></div>
+        <div><b>2</b><span>Practice the pitch</span></div>
+        <div><b>3</b><span>Earn ${escapeHtml(store.reward)}</span></div>
+      </div>
+      <button class="rpg-sell-btn" type="button" data-store-run="1">Run ${escapeHtml(station.action)}</button>
+    </div>
+  `;
+  infoBody.querySelector("[data-store-run]")?.addEventListener("click", () => {
+    state.skills[store.skill] = Number(state.skills[store.skill] || 0) + store.xp;
+    state.player.xp = Number(state.player.xp || 0) + store.xp;
+    state.player.cash = Number(state.player.cash || 0) + store.cash;
+    state.player.level = 1 + Math.floor(Number(state.player.xp || 0) / 100);
+    state.inventory.jobProof = Number(state.inventory.jobProof || 0) + 1;
+    state.player.activity = store.name;
+    showBubble(localMesh, store.reward);
+    spawnFloatText(`+${store.xp} XP`, store.accent, state.player.x, state.player.z);
+    spawnFloatText(`+$${store.cash}`, "#7df2aa", state.player.x + 0.35, state.player.z + 0.2);
+    sound("activity");
+    saveProgress();
+    syncPlayer(true);
+    targetEl.textContent = `${store.name}: ${store.reward} earned. +${store.xp} XP, +$${store.cash}, +1 Job Proof.`;
+    renderStorePanel(station);
+  });
+  return true;
 }
 
 function hasCorporatePass() {
@@ -2146,6 +2456,7 @@ function renderCorporateInterior(corp) {
   const floors = ["Lobby", "Interview Room", "Hiring Manager", "Team Floor", "Rooftop"];
   infoBody.innerHTML = `
     <div class="rpg-corporate-room">
+      ${corp.photo ? `<figure class="rpg-reference-photo"><img src="${escapeHtml(corp.photo)}" alt="${escapeHtml(corp.name)} real-world reference" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('figure').style.display='none'"><figcaption>${escapeHtml(corp.note || `${corp.name} inspired campus`)}</figcaption></figure>` : ""}
       <div class="rpg-room-stage" style="--corp:${escapeHtml(corp.accent)}">
         <span class="rpg-room-player"></span>
         <span class="rpg-room-desk"></span>
@@ -2153,7 +2464,7 @@ function renderCorporateInterior(corp) {
         <span class="rpg-room-plant one"></span>
         <span class="rpg-room-plant two"></span>
       </div>
-      <p>You are inside ${escapeHtml(corp.name)}. Walk the floors, practice a real conversation, and launch a matching job application from the computer.</p>
+      <p>You are inside the ${escapeHtml(corp.name)} campus. Walk the floors, practice a real conversation, and launch a matching job application from the computer.</p>
       <div class="rpg-floor-list">
         ${floors.map((floor, index) => `<button type="button" data-floor="${index}"><strong>${escapeHtml(floor)}</strong><span>${index === 0 ? "Security cleared" : `Floor ${index}`}</span></button>`).join("")}
       </div>
@@ -2761,7 +3072,27 @@ function animate(now) {
       item.mesh.scale.set(pulse, 1 + Math.sin(t * 10 + item.phase) * 0.2, pulse);
     } else if (item.type === "wagon") {
       item.mesh.position.y = Math.sin(t * 1.8 + item.phase) * 0.04;
+    } else if (item.type === "doorGlow") {
+      const pulse = 0.65 + Math.sin(t * 3.8 + item.phase) * 0.28;
+      if (item.mesh.material?.emissive) item.mesh.material.emissiveIntensity = Math.max(0.02, pulse * 0.14);
+    } else if (item.type === "rocketIdle") {
+      item.mesh.position.y += Math.sin(t * 2 + item.phase) * dt * 0.08;
+      item.mesh.rotation.y += dt * 0.18;
+    } else if (item.type === "drone") {
+      item.mesh.rotation.y += dt * 1.9;
+      item.mesh.position.y += Math.sin(t * 2.4 + item.phase) * dt * 0.18;
+    } else if (item.type === "floatText") {
+      const age = now - item.born;
+      item.mesh.position.y += dt * 1.15;
+      if (item.mesh.material) item.mesh.material.opacity = Math.max(0, 1 - age / item.duration);
+      if (age > item.duration) {
+        world.remove(item.mesh);
+        item.done = true;
+      }
     }
+  }
+  for (let i = animatedObjects.length - 1; i >= 0; i--) {
+    if (animatedObjects[i].done) animatedObjects.splice(i, 1);
   }
   const targetX = (state.player?.x || 0) * TILE;
   const targetZ = (state.player?.z || 0) * TILE;
