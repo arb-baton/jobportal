@@ -3026,11 +3026,17 @@ async function fetchPumpFunSubmissions(taskId = "", bountyId = "") {
   const id = sanitizeGoText(taskId || "", 100);
   if (!id) return [];
   try {
+    const userAgent = String(
+      process.env.PUMPFUN_USER_AGENT ||
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    ).trim();
     const response = await withTimeout(
       fetch(`https://livestream-api.pump.fun/bounties/tasks/${encodeURIComponent(id)}/submissions?limit=50`, {
         headers: {
-          ...pumpFunSubmitAuthHeaders({ referer: `https://pump.fun/go/${encodeURIComponent(id)}` }),
-          Accept: "application/json"
+          Accept: "application/json",
+          Origin: "https://pump.fun",
+          Referer: `https://pump.fun/go/${encodeURIComponent(id)}`,
+          "User-Agent": userAgent
         }
       }),
       10_000,
@@ -3051,6 +3057,7 @@ async function fetchPumpFunSubmissions(taskId = "", bountyId = "") {
       .map((row) => normalizePumpFunSubmission(row, bountyId || `pumpfun-${id}`))
       .filter(Boolean);
   } catch (error) {
+    console.warn(`Pump.fun submissions unavailable for ${id}: ${error?.message || "unknown error"}`);
     return [];
   }
 }
