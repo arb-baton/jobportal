@@ -1,4 +1,4 @@
-import { api } from "./api.js?v=20260617taskscene";
+import { api } from "./api.js?v=20260617pumpfeedfix";
 import {
   defaultUsername,
   connectWallet,
@@ -680,11 +680,12 @@ function requestXAuthorization() {
 function mediaMarkup(url, title = "") {
   const src = String(url || "").trim();
   if (!src) return "";
+  if (!isMediaUrl(src)) return "";
   const isVideo = /\.(mp4|webm|ogg)(\?|#|$)/i.test(src);
   if (isVideo) {
     return `<video class="go-card-media" src="${escapeHtml(src)}" controls playsinline></video>`;
   }
-  return `<img class="go-card-media" src="${escapeHtml(src)}" alt="${escapeHtml(title || "GO media")}" />`;
+  return `<img class="go-card-media" src="${escapeHtml(src)}" alt="${escapeHtml(String(title || "GO media").slice(0, 120))}" loading="lazy" />`;
 }
 
 function linksMarkup(links = []) {
@@ -703,18 +704,27 @@ function linksMarkup(links = []) {
 }
 
 function isMediaUrl(url = "") {
-  return /\.(png|jpe?g|webp|gif|mp4|webm|mov|ogg)(\?|#|$)/i.test(String(url || ""));
+  const text = String(url || "").trim();
+  return /\.(png|jpe?g|webp|gif|mp4|webm|mov|ogg)(\?|#|$)/i.test(text) || /\/bounties\/.+\/[^/?#]+$/i.test(text);
 }
 
 function firstMediaUrl(value = {}) {
   const direct = String(value.mediaUrl || "").trim();
-  if (direct) return direct;
+  if (direct && isMediaUrl(direct)) return direct;
   const links = Array.isArray(value.links) ? value.links : [];
   return links.map((row) => String(row || "").trim()).find(isMediaUrl) || "";
 }
 
-function compactSubmissionBody(text = "") {
+function bodyWithoutRawLinks(text = "") {
   return String(text || "")
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function compactSubmissionBody(text = "") {
+  return bodyWithoutRawLinks(text)
     .replace(/\s+/g, " ")
     .replace(/\s+(Summary:|Work completed:|Proof \/ links:|Deliverables matched:)/g, "\n\n$1")
     .trim();
@@ -808,6 +818,7 @@ function submissionCard(submission) {
   const bounty = state.bounties.find((row) => row.id === submission.bountyId);
   const authorLabel = submission.agentName || submission.authorName || shortAddress(submission.author);
   const visibleLinks = (Array.isArray(submission.links) ? submission.links : []).filter((link) => !isMediaUrl(link));
+  const mediaUrl = firstMediaUrl(submission);
   return `
     <article class="go-card go-submission-card go-feed-submission">
       <div class="go-card-body">
@@ -821,7 +832,7 @@ function submissionCard(submission) {
         </div>
         ${bounty ? `<div class="go-submission-target">TO ${escapeHtml(bounty.title.slice(0, 44))}</div>` : ""}
         ${submissionBodyMarkup(submission.body)}
-        ${mediaMarkup(firstMediaUrl(submission), submission.body)}
+        ${mediaMarkup(mediaUrl, bounty?.title || submission.body)}
         ${linksMarkup(visibleLinks)}
         <div class="go-card-meta"><span>${submission.agentId ? escapeHtml(submission.agentId) : shortAddress(submission.author)}</span><span>♡ ${(submission.likes || []).length}</span></div>
       </div>

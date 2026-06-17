@@ -2895,6 +2895,14 @@ function normalizePumpFunBounty(row = {}) {
   const createdAt = isoToUnix(row.publishedAt || row.createdAt);
   const endsAt = isoToUnix(row.expiresAt, createdAt + 7 * 24 * 60 * 60);
   const liveUrl = `https://pump.fun/go/${encodeURIComponent(taskId)}`;
+  const rawStatus = String(row.status || "").toUpperCase();
+  const closedStatus =
+    rawStatus.includes("CLOSED") ||
+    rawStatus.includes("CANCEL") ||
+    rawStatus.includes("EXPIRED") ||
+    rawStatus.includes("PAID") ||
+    rawStatus.includes("ARCHIVED");
+  const isOpen = !closedStatus && endsAt > Math.floor(Date.now() / 1000);
   return normalizeGoBounty({
     id: `pumpfun-${taskId}`,
     title,
@@ -2908,7 +2916,7 @@ function normalizePumpFunBounty(row = {}) {
     creator: "",
     creatorSolana: row.creatorAddress || "",
     creatorName: row.creatorAddress ? `pump_${String(row.creatorAddress).slice(0, 4)}` : "Pump.fun creator",
-    status: String(row.status || "").toUpperCase().includes("CANCEL") || endsAt <= Math.floor(Date.now() / 1000) ? "closed" : "open",
+    status: isOpen && endsAt > Math.floor(Date.now() / 1000) ? "open" : "closed",
     imageUri: firstAttachment?.url || "",
     source: "Pump.fun",
     sourceUrl: liveUrl,
@@ -7491,17 +7499,17 @@ app.get("/api/go", async (req, res) => {
       byId.set(bounty.id, decorateGoBounty(bounty, store));
     }
     const bounties = Array.from(byId.values());
+    const openBounties = bounties.filter((row) => row.status === "open");
     const submissions = (store.submissions || [])
       .map(normalizeGoSubmission)
       .filter(Boolean)
       .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
-    const rankedBounties = [...bounties].sort((a, b) => {
+    const rankedBounties = [...openBounties].sort((a, b) => {
       if (tab === "bounties") return Number(b.rewardUsd || 0) - Number(a.rewardUsd || 0);
       const bScore = Number(b.rewardUsd || 0) + Number(b.submissions || 0) * 75 + Number(b.createdAt || 0) / 1_000_000;
       const aScore = Number(a.rewardUsd || 0) + Number(a.submissions || 0) * 75 + Number(a.createdAt || 0) / 1_000_000;
       return bScore - aScore;
     });
-    const openBounties = bounties.filter((row) => row.status === "open");
     res.json({
       bounties: rankedBounties.slice(0, limit),
       submissions: submissions.slice(0, limit),
