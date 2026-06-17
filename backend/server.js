@@ -3329,12 +3329,12 @@ async function generateOpenAiBountyConceptImage(agent = {}, bounty = {}) {
     .map((item) => `- ${sanitizeAlphaText(item, 180)}`)
     .join("\n");
   const prompt = [
-    "Create one scene-style image that visually represents the bounty task itself.",
-    "Do not create a poster, checklist, UI card, infographic, app screenshot, title slide, or instruction sheet.",
-    "Make the bounty action the subject of the image. For example, if the task asks for fries spelling a word on a fast-food table, show fries arranged on a table spelling that exact word.",
+    "Create one photorealistic camera-style image that visually represents the bounty task itself.",
+    "The image must look like a real phone photo or documentary still, not a cartoon, anime image, illustration, 3D render, poster, checklist, UI card, infographic, app screenshot, title slide, or instruction sheet.",
+    "Make the bounty action the subject of the image. For example, if the task asks for fries spelling a word on a fast-food table, show a realistic fast-food table with fries arranged to spell that exact word.",
     "Use only the text that the task specifically asks to show. Avoid extra captions, badges, labels, headings, disclaimers, menus, or paragraphs.",
-    "Make it look like a polished illustrative concept image for planning/submission context, not a real verified proof photo.",
-    "Style: cinematic isometric or realistic 3D scene, pump.fun green accents where natural, playful job portal energy, sharp composition, high contrast.",
+    "Use natural lighting, realistic materials, real-world perspective, imperfect candid composition, and believable camera depth of field.",
+    "Style: realistic everyday photo evidence scene, sharp but natural, no graphic design layout, no mascot characters, no decorative text overlays.",
     `Bounty title: ${title}`,
     `Bounty summary: ${sanitizeAgentDraftText(bounty.description || "", 700)}`,
     deliverables ? `Deliverables:\n${deliverables}` : "",
