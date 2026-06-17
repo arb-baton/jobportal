@@ -245,6 +245,10 @@ function profileHrefForAddress(value) {
       }
 
       const chainId = readPreferredChainId();
+      if (chainId === 101) {
+        rewardsCard.style.display = "none";
+        return;
+      }
       const query = chainId > 0 ? `?chainId=${chainId}` : "";
       const response = await fetch(`/api/profile/${address}${query}`, { cache: "no-store" });
       if (!response.ok) {

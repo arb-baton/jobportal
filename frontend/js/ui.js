@@ -12,7 +12,7 @@ import {
   shortAddress,
   walletState,
   parseUiError
-} from "./core.js?v=20260611walletmodal";
+} from "./core.js?v=20260616freshphantom";
 
 export function setAlert(el, message, isError = false) {
   if (!el) return;
@@ -521,7 +521,7 @@ export function initWalletControls({ selectEl, connectBtn, disconnectBtn, labelE
         throw new Error("No Phantom wallet detected. Install Phantom and refresh.");
       }
       const choice = await showWalletPickerModal(wallets);
-      await connectWallet(choice);
+      await connectWallet(choice, { forcePrompt: true });
       setWalletLabel(labelEl);
       await notifyConnected();
       setAlert(alertEl, "Wallet connected");

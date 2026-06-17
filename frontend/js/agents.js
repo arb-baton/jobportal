@@ -1,6 +1,6 @@
 import { api } from "./api.js";
-import { defaultUsername, parseUiError, shortAddress, walletState } from "./core.js?v=20260611walletmodal";
-import { initTopbarWalletProfile, setAlert } from "./ui.js?v=20260611walletsync";
+import { defaultUsername, parseUiError, shortAddress, walletState } from "./core.js?v=20260616freshphantom";
+import { initTopbarWalletProfile, setAlert } from "./ui.js?v=20260616freshphantom";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const ui = {
@@ -19,9 +19,18 @@ const ui = {
   postForm: document.getElementById("agentPostForm"),
   postSelect: document.getElementById("agentPostSelect"),
   postKind: document.getElementById("agentPostKind"),
+  bountySelect: document.getElementById("agentBountySelect"),
   postTitle: document.getElementById("agentPostTitle"),
   postBody: document.getElementById("agentPostBody"),
   postUrl: document.getElementById("agentPostUrl"),
+  postFile: document.getElementById("agentPostFile"),
+  postMediaUrl: document.getElementById("agentPostMediaUrl"),
+  postMediaType: document.getElementById("agentPostMediaType"),
+  postMediaName: document.getElementById("agentPostMediaName"),
+  draftBountyBtn: document.getElementById("agentDraftBountyBtn"),
+  runBountyBtn: document.getElementById("agentRunBountyBtn"),
+  submitBountyBtn: document.getElementById("agentSubmitBountyBtn"),
+  runResult: document.getElementById("agentRunResult"),
   formStatus: document.getElementById("agentFormStatus"),
   postStatus: document.getElementById("agentPostStatus"),
   saveBtn: document.getElementById("agentSaveBtn"),
@@ -38,7 +47,7 @@ const ui = {
   walletLabel: document.getElementById("walletAddress")
 };
 
-const state = { agents: [], posts: [], query: "", walletControls: null, mode: "agent" };
+const state = { agents: [], posts: [], bounties: [], query: "", walletControls: null, mode: "agent" };
 
 function escapeHtml(value = "") {
   return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
@@ -86,6 +95,42 @@ function humanAgo(ts = 0) {
   return `${Math.floor(diff / 86400)}d`;
 }
 
+function mediaMarkup(url = "", title = "") {
+  const src = String(url || "").trim();
+  if (!src) return "";
+  const safe = escapeHtml(src);
+  if (/\.(mp4|webm|mov)(\?|#|$)/i.test(src) || String(src).startsWith("data:video/")) {
+    return `<video class="agent-post-media" src="${safe}" controls playsinline></video>`;
+  }
+  if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(src) || String(src).startsWith("data:image/") || src.startsWith("/")) {
+    return `<img class="agent-post-media" src="${safe}" alt="${escapeHtml(title || "Agent media")}" />`;
+  }
+  return `<a class="agent-media-link" href="${safe}" target="_blank" rel="noreferrer noopener">Open attachment</a>`;
+}
+
+function linkListMarkup(links = []) {
+  const safe = (Array.isArray(links) ? links : [])
+    .map((row) => String(row || "").trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  if (!safe.length) return "";
+  return `<div class="agent-link-list">${safe.map((link) => `<a href="${escapeHtml(link)}" target="_blank" rel="noreferrer noopener">${escapeHtml(link)}</a>`).join("")}</div>`;
+}
+
+function renderRunResult(result = {}) {
+  if (!ui.runResult) return;
+  const links = Array.isArray(result.links) ? result.links : [];
+  ui.runResult.hidden = false;
+  ui.runResult.innerHTML = `
+    <b>${escapeHtml(result.externalSubmitRequired ? "Agent package submitted here. Pump.fun handoff required." : "Agent submitted the work package.")}</b>
+    <p>${escapeHtml(result.note || "Agent run complete.")}</p>
+    ${result.submission?.id ? `<small>Submission: ${escapeHtml(result.submission.id)}</small>` : ""}
+    ${result.post?.id ? `<small>Agent post: ${escapeHtml(result.post.id)}</small>` : ""}
+    ${result.externalSubmitUrl ? `<a href="${escapeHtml(result.externalSubmitUrl)}" target="_blank" rel="noreferrer noopener">Open original Pump.fun bounty</a>` : ""}
+    ${linkListMarkup(links)}
+  `;
+}
+
 function matches(agent) {
   const q = state.query.toLowerCase();
   if (!q) return true;
@@ -108,7 +153,13 @@ function renderAgent(agent) {
         <span>${Number(agent.postCount || posts.length || 0)} posts</span>
       </div>
       <pre class="agent-skills-preview">${escapeHtml(agent.skillsMd || "")}</pre>
-      ${latest ? `<div class="agent-latest"><b>${escapeHtml(latest.title || latest.kind || "Update")}</b><span>${humanAgo(latest.createdAt)}</span><p>${escapeHtml(latest.body || "")}</p></div>` : ""}
+      ${latest ? `<div class="agent-latest">
+        <b>${escapeHtml(latest.title || latest.kind || "Update")}</b><span>${humanAgo(latest.createdAt)}</span>
+        ${latest.bountyId ? `<small>Bounty: ${escapeHtml(latest.bountyId)}</small>` : ""}
+        ${mediaMarkup(latest.mediaUrl, latest.title)}
+        <p>${escapeHtml(latest.body || "")}</p>
+        ${linkListMarkup(latest.links)}
+      </div>` : ""}
     </article>
   `;
 }
@@ -121,6 +172,11 @@ function render() {
   ui.postSelect.innerHTML = state.agents.length
     ? state.agents.map((agent) => `<option value="${escapeHtml(agent.id)}">${escapeHtml(agent.name)}</option>`).join("")
     : '<option value="">Save an agent first</option>';
+  if (ui.bountySelect) {
+    ui.bountySelect.innerHTML = '<option value="">No bounty selected</option>' + state.bounties
+      .map((bounty) => `<option value="${escapeHtml(bounty.id)}">${escapeHtml(bounty.source ? `${bounty.source}: ` : "")}${escapeHtml(bounty.title)} - ${escapeHtml(String(bounty.rewardUsd || 0))} USD</option>`)
+      .join("");
+  }
 }
 
 async function loadSkillPreview() {
@@ -151,6 +207,12 @@ async function loadAgents() {
   render();
 }
 
+async function loadBounties() {
+  const payload = await api.go("bounties", 80, { fresh: true }).catch(() => ({ bounties: [] }));
+  state.bounties = Array.isArray(payload.bounties) ? payload.bounties.filter((row) => String(row.status || "open") === "open") : [];
+  render();
+}
+
 function requireOwner() {
   return activeOwner();
 }
@@ -161,6 +223,145 @@ function validateAgentForm() {
   if (!name) throw new Error("Add an agent name first");
   if (!skillsMd) throw new Error("Add SKILLS.md instructions first");
   return { name, skillsMd };
+}
+
+function selectedAgent() {
+  return state.agents.find((agent) => agent.id === ui.postSelect?.value) || null;
+}
+
+function selectedBounty() {
+  return state.bounties.find((bounty) => bounty.id === ui.bountySelect?.value) || null;
+}
+
+function localDraftBountyWork(agent, bounty) {
+  if (!agent) throw new Error("Select an agent first");
+  if (!bounty) throw new Error("Select a bounty first");
+  const deliverables = (Array.isArray(bounty.deliverables) ? bounty.deliverables : [])
+    .map((item, index) => `${index + 1}. ${item}`)
+    .join("\n");
+  const skills = String(agent.skillsMd || "").split("\n").slice(0, 8).join("\n");
+  const sourceNote = bounty.source === "Pump.fun"
+    ? "Live Pump.fun brief synced into Get Me a Job. Work from the title, description, criteria, reward, media, and attached source link below."
+    : "Work from the sponsor brief and acceptance criteria in Get Me a Job.";
+  ui.postKind.value = "bounty-work";
+  ui.postTitle.value = `${agent.name} work package for ${bounty.title}`.slice(0, 120);
+  ui.postBody.value = [
+    `Agent: ${agent.name}`,
+    `Bounty: ${bounty.title}`,
+    `Source: ${bounty.source || "Get Me a Job"}`,
+    `Reward: $${Number(bounty.rewardUsd || 0).toLocaleString()}${bounty.tokenAmount ? ` / ${bounty.tokenAmount} ${bounty.tokenUnit || ""}` : ""}`,
+    "",
+    "Synced brief:",
+    bounty.description || "No description provided.",
+    "",
+    "Plan:",
+    `- ${sourceNote}`,
+    `- Produce the requested deliverables with media/proof attached.`,
+    `- Submit final links/files for review.`,
+    "",
+    "Acceptance criteria:",
+    deliverables || "- No explicit deliverables listed.",
+    "",
+    "Relevant SKILLS.md:",
+    skills || "- No skills listed.",
+    "",
+    "Current work note:",
+    "Draft ready for human review. Attach the finished pic/video/file or links before submitting."
+  ].join("\n");
+  if (bounty.sourceUrl && ui.postUrl && !String(ui.postUrl.value || "").includes(bounty.sourceUrl)) {
+    ui.postUrl.value = `${String(ui.postUrl.value || "").trim()} ${bounty.sourceUrl}`.trim();
+  }
+}
+
+async function draftBountyWork() {
+  const agent = selectedAgent();
+  const bounty = selectedBounty();
+  if (!agent) throw new Error("Select an agent first");
+  if (!bounty) throw new Error("Select a bounty first");
+  setInlineStatus(ui.postStatus, "Asking AI agent to read the full bounty brief...");
+  try {
+    const result = await api.agentDraftBounty(agent.id, {
+      owner: requireOwner(),
+      bountyId: bounty.id
+    });
+    const fullBounty = result?.bounty || bounty;
+    ui.postKind.value = "bounty-work";
+    ui.postTitle.value = `${agent.name} work package for ${fullBounty.title || bounty.title}`.slice(0, 120);
+    ui.postBody.value = result?.body || "";
+    const links = Array.isArray(result?.links) ? result.links : [];
+    for (const link of links) {
+      if (link && ui.postUrl && !String(ui.postUrl.value || "").includes(link)) {
+        ui.postUrl.value = `${String(ui.postUrl.value || "").trim()} ${link}`.trim();
+      }
+    }
+    setInlineStatus(ui.postStatus, result?.configured ? "AI bounty draft generated from the full synced brief." : result?.note || "Local draft generated. Add OPENAI_API_KEY for AI mode.", result?.configured ? "success" : "info");
+  } catch (error) {
+    localDraftBountyWork(agent, bounty);
+    setInlineStatus(ui.postStatus, `${parseUiError(error)} Local draft generated instead.`, "error");
+  }
+}
+
+async function runBountyAgent() {
+  const agent = selectedAgent();
+  const bounty = selectedBounty();
+  if (!agent) throw new Error("Select an agent first");
+  if (!bounty) throw new Error("Select a bounty first");
+  if (ui.runResult) {
+    ui.runResult.hidden = false;
+    ui.runResult.innerHTML = "<b>Running agent...</b><p>Reading synced bounty, generating deliverables, posting the agent update, and submitting to the bounty.</p>";
+  }
+  setInlineStatus(ui.postStatus, "Running agent on the full synced bounty brief...");
+  const mediaUrl = await uploadAgentMediaIfNeeded();
+  const result = await api.agentRunBounty(agent.id, {
+    owner: requireOwner(),
+    bountyId: bounty.id,
+    title: ui.postTitle?.value || `${agent.name} completed ${bounty.title}`,
+    links: postLinks(),
+    mediaUrl,
+    mediaType: ui.postMediaType?.value || "",
+    author: activeAddress(),
+    authorName: agent.name
+  });
+  ui.postKind.value = "bounty-work";
+  ui.postTitle.value = result?.post?.title || `${agent.name} work package for ${result?.bounty?.title || bounty.title}`.slice(0, 120);
+  ui.postBody.value = result?.body || result?.submission?.body || "";
+  if (result?.externalSubmitUrl && ui.postUrl && !String(ui.postUrl.value || "").includes(result.externalSubmitUrl)) {
+    ui.postUrl.value = `${String(ui.postUrl.value || "").trim()} ${result.externalSubmitUrl}`.trim();
+  }
+  renderRunResult(result);
+  setInlineStatus(ui.postStatus, result?.externalSubmitRequired ? "Agent submitted inside Get Me a Job. Use the Pump.fun handoff link for the original bounty." : "Agent work submitted to bounty.", result?.externalSubmitRequired ? "info" : "success");
+  await Promise.all([loadAgents(), loadBounties()]);
+}
+
+async function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Could not read selected file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadAgentMediaIfNeeded() {
+  const existing = String(ui.postMediaUrl?.value || "").trim();
+  if (existing) return existing;
+  const file = ui.postFile?.files?.[0] || null;
+  if (!file) return "";
+  if (file.size > 5 * 1024 * 1024) throw new Error("Attachment must be 5 MB or smaller");
+  setInlineStatus(ui.postStatus, "Uploading agent attachment...");
+  const upload = await api.uploadFile(await fileToDataUrl(file));
+  const url = upload?.url || upload?.imageUri || "";
+  if (ui.postMediaUrl) ui.postMediaUrl.value = url;
+  if (ui.postMediaType) ui.postMediaType.value = upload?.mime || file.type || "";
+  return url;
+}
+
+function postLinks() {
+  return String(ui.postUrl?.value || "")
+    .split(/\s+/)
+    .map((row) => row.trim())
+    .filter(Boolean)
+    .slice(0, 6);
 }
 
 ui.humanModeBtn?.addEventListener("click", () => setAgentMode("human"));
@@ -184,6 +385,46 @@ ui.skillsFile?.addEventListener("change", async () => {
   const file = ui.skillsFile.files?.[0];
   if (!file) return;
   ui.skills.value = await file.text();
+});
+
+ui.postFile?.addEventListener("change", () => {
+  const file = ui.postFile?.files?.[0] || null;
+  if (ui.postMediaName) ui.postMediaName.textContent = file ? `${file.name} (${Math.ceil(file.size / 1024)} KB)` : "No media selected";
+  if (ui.postMediaUrl) ui.postMediaUrl.value = "";
+  if (ui.postMediaType) ui.postMediaType.value = file?.type || "";
+});
+
+ui.draftBountyBtn?.addEventListener("click", async () => {
+  ui.draftBountyBtn?.setAttribute("disabled", "disabled");
+  try {
+    await draftBountyWork();
+  } catch (error) {
+    setInlineStatus(ui.postStatus, parseUiError(error), "error");
+  } finally {
+    ui.draftBountyBtn?.removeAttribute("disabled");
+  }
+});
+
+ui.runBountyBtn?.addEventListener("click", async () => {
+  ui.runBountyBtn?.setAttribute("disabled", "disabled");
+  ui.draftBountyBtn?.setAttribute("disabled", "disabled");
+  ui.submitBountyBtn?.setAttribute("disabled", "disabled");
+  try {
+    await runBountyAgent();
+    setAlert(ui.alert, "Agent run submitted");
+  } catch (error) {
+    const message = parseUiError(error);
+    setInlineStatus(ui.postStatus, message, "error");
+    if (ui.runResult) {
+      ui.runResult.hidden = false;
+      ui.runResult.innerHTML = `<b>Agent run failed</b><p>${escapeHtml(message)}</p>`;
+    }
+    setAlert(ui.alert, message, true);
+  } finally {
+    ui.runBountyBtn?.removeAttribute("disabled");
+    ui.draftBountyBtn?.removeAttribute("disabled");
+    ui.submitBountyBtn?.removeAttribute("disabled");
+  }
 });
 
 ui.form?.addEventListener("submit", async (event) => {
@@ -225,14 +466,19 @@ ui.postForm?.addEventListener("submit", async (event) => {
     const agentId = ui.postSelect.value;
     if (!agentId) throw new Error("Save an agent first");
     if (!String(ui.postBody.value || "").trim()) throw new Error("Write an update first");
+    const mediaUrl = await uploadAgentMediaIfNeeded();
     await api.agentPost(agentId, {
       owner,
       kind: ui.postKind.value,
       title: ui.postTitle.value,
       body: ui.postBody.value,
-      url: ui.postUrl.value
+      bountyId: ui.bountySelect?.value || "",
+      mediaUrl,
+      mediaType: ui.postMediaType?.value || "",
+      links: postLinks()
     });
     ui.postForm.reset();
+    if (ui.postMediaName) ui.postMediaName.textContent = "No media selected";
     setInlineStatus(ui.postStatus, "Agent update posted.", "success");
     setAlert(ui.alert, "Agent update posted");
     await loadAgents();
@@ -242,6 +488,47 @@ ui.postForm?.addEventListener("submit", async (event) => {
     setAlert(ui.alert, message, true);
   } finally {
     ui.postBtn?.removeAttribute("disabled");
+  }
+});
+
+ui.submitBountyBtn?.addEventListener("click", async () => {
+  ui.submitBountyBtn?.setAttribute("disabled", "disabled");
+  setInlineStatus(ui.postStatus, "Submitting agent work to bounty...");
+  try {
+    const agent = selectedAgent();
+    const bounty = selectedBounty();
+    if (!agent) throw new Error("Select an agent first");
+    if (!bounty) throw new Error("Select a bounty first");
+    if (!String(ui.postBody.value || "").trim()) throw new Error("Generate or write the work package first");
+    const mediaUrl = await uploadAgentMediaIfNeeded();
+    const owner = requireOwner();
+    await api.agentPost(agent.id, {
+      owner,
+      kind: "bounty-work",
+      title: ui.postTitle.value || `Work for ${bounty.title}`,
+      body: ui.postBody.value,
+      bountyId: bounty.id,
+      mediaUrl,
+      mediaType: ui.postMediaType?.value || "",
+      links: postLinks()
+    });
+    await api.submitGoWork(bounty.id, {
+      body: ui.postBody.value,
+      mediaUrl,
+      links: postLinks(),
+      author: activeAddress(),
+      authorName: agent.name,
+      agentId: agent.id,
+      agentName: agent.name
+    });
+    ui.postForm.reset();
+    if (ui.postMediaName) ui.postMediaName.textContent = "No media selected";
+    setInlineStatus(ui.postStatus, `Submitted ${agent.name}'s work to ${bounty.title}.`, "success");
+    await Promise.all([loadAgents(), loadBounties()]);
+  } catch (error) {
+    setInlineStatus(ui.postStatus, parseUiError(error), "error");
+  } finally {
+    ui.submitBountyBtn?.removeAttribute("disabled");
   }
 });
 
@@ -256,4 +543,4 @@ state.walletControls = initTopbarWalletProfile({
 initSupportWidget();
 setAgentMode("agent");
 loadSkillPreview();
-loadAgents().catch((error) => setAlert(ui.alert, parseUiError(error), true));
+Promise.all([loadAgents(), loadBounties()]).catch((error) => setAlert(ui.alert, parseUiError(error), true));

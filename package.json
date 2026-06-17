@@ -17,7 +17,8 @@
     "deploy:go-escrow:monad": "hardhat run scripts/deploy-go-escrow.js --network monad",
     "deploy:usdc-factory:mainnet": "hardhat run scripts/deploy-usdc-factory.js --network mainnet",
     "app": "node backend/server.js",
-    "frontend": "node backend/server.js"
+    "frontend": "node backend/server.js",
+    "pumpfun:submit": "node scripts/pumpfun-submit-local.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.2",
@@ -29,6 +30,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "playwright-core": "^1.61.0",
     "three": "^0.184.0"
   },
   "overrides": {

@@ -8,8 +8,8 @@ import {
   parseUiError,
   shortAddress,
   walletState
-} from "./core.js?v=20260611walletmodal";
-import { initTopbarWalletProfile, setAlert } from "./ui.js?v=20260611walletsync";
+} from "./core.js?v=20260616freshphantom";
+import { initTopbarWalletProfile, setAlert } from "./ui.js?v=20260616freshphantom";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
 const ALPHA_X_AUTH_KEY = "etherpump.alpha.xauth.v1";
@@ -43,6 +43,8 @@ const ui = {
   category: document.getElementById("alphaCategory"),
   confidence: document.getElementById("alphaConfidence"),
   authorWallet: document.getElementById("alphaAuthorWallet"),
+  authorWalletError: document.getElementById("alphaAuthorWalletError"),
+  submitStatus: document.getElementById("alphaSubmitStatus"),
   xStatus: document.getElementById("alphaXStatus"),
   connectX: document.getElementById("alphaConnectX"),
   tipModal: document.getElementById("alphaTipModal"),
@@ -67,6 +69,7 @@ const state = {
   filter: "all",
   activeTip: null,
   xProfile: null,
+  xError: "",
   walletControls: null
 };
 
@@ -125,6 +128,7 @@ function saveXAuth(profile) {
 function handleXOAuthReturn() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("x") === "authorized") {
+    state.xError = "";
     saveXAuth(decodeBase64UrlJson(params.get("x_user")) || { authorized: true });
     params.delete("x");
     params.delete("x_user");
@@ -137,6 +141,8 @@ function handleXOAuthReturn() {
     params.delete("x");
     params.delete("reason");
     window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+    state.xError = reason;
+    renderXStatus();
     setAlert(ui.alert, reason, true);
   }
 }
@@ -200,7 +206,21 @@ function isValidTokenAddressForChain(value = "", chainId = 1) {
   return isSolanaChain(chainId) ? isLikelySolanaAddress(value) : ethers.isAddress(String(value || ""));
 }
 
+function isValidJobReference(value = "") {
+  const text = String(value || "").trim();
+  if (!text) return false;
+  if (isLikelySolanaAddress(text) || ethers.isAddress(text)) return true;
+  try {
+    const url = new URL(text);
+    return ["http:", "https:"].includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
 function tokenHref(tip) {
+  const reference = String(tip.tokenAddress || "").trim();
+  if (/^https?:\/\//i.test(reference)) return reference;
   if (isSolanaChain(tip.chainId)) {
     return `https://solscan.io/token/${encodeURIComponent(tip.tokenAddress)}`;
   }
@@ -208,7 +228,7 @@ function tokenHref(tip) {
 }
 
 function tokenLinkTarget(tip) {
-  return isSolanaChain(tip.chainId) ? ` target="_blank" rel="noreferrer noopener"` : "";
+  return isSolanaChain(tip.chainId) || /^https?:\/\//i.test(String(tip.tokenAddress || "")) ? ` target="_blank" rel="noreferrer noopener"` : "";
 }
 
 function isImageEvidence(type = "", url = "") {
@@ -255,6 +275,24 @@ function closeModal(el) {
   el.setAttribute("aria-hidden", "true");
 }
 
+function setSubmitStatus(message = "", isError = false) {
+  if (!ui.submitStatus) return;
+  ui.submitStatus.textContent = message;
+  ui.submitStatus.classList.toggle("error", Boolean(isError));
+  ui.submitStatus.classList.toggle("show", Boolean(message));
+}
+
+function clearSubmitStatus() {
+  setSubmitStatus("");
+  setFieldError(ui.authorWallet, ui.authorWalletError, "");
+}
+
+function setFieldError(input, errorEl, message = "") {
+  if (errorEl) errorEl.textContent = message;
+  input?.classList.toggle("field-error", Boolean(message));
+  input?.setAttribute("aria-invalid", message ? "true" : "false");
+}
+
 function filteredTips() {
   const q = state.query.toLowerCase();
   return state.tips
@@ -275,8 +313,9 @@ function filteredTips() {
 function renderXStatus() {
   if (!ui.xStatus) return;
   const x = state.xProfile;
-  ui.xStatus.textContent = x?.username ? `Posting as @${x.username}` : "Connect X to publish or comment";
+  ui.xStatus.textContent = x?.username ? `Posting as @${x.username}` : state.xError || "Connect X to publish or comment";
   ui.xStatus.classList.toggle("connected", Boolean(x?.username));
+  ui.xStatus.classList.toggle("error", Boolean(!x?.username && state.xError));
 }
 
 function renderStats() {
@@ -429,14 +468,16 @@ async function loadAlpha() {
 }
 
 function fillSubmitDefaults() {
-  const ws = walletState();
-  if (ui.authorWallet && !ui.authorWallet.value && ws.address) ui.authorWallet.value = ws.address;
+  clearSubmitStatus();
 }
 
 function requestXAuthorization() {
+  state.xError = "";
+  renderXStatus();
   const ws = walletState();
   if (!ws.signer || !ws.address) {
-    setAlert(ui.alert, "Connect wallet before authorizing X", true);
+    state.xError = "Connect Phantom before authorizing X.";
+    renderXStatus();
     ui.connectBtn?.click();
     return;
   }
@@ -446,15 +487,24 @@ function requestXAuthorization() {
 
 async function submitAlpha(event) {
   event.preventDefault();
+  clearSubmitStatus();
   const ws = await ensureConnected();
   await ensureXConnected();
-  const authorWallet = String(ui.authorWallet?.value || ws.address || "").trim();
+  const authorWallet = String(ui.authorWallet?.value || "").trim();
   const chainId = 101;
   if (ui.chainId) ui.chainId.value = "101";
-  if (ui.tokenAddress && !isValidTokenAddressForChain(String(ui.tokenAddress.value || ""), chainId)) {
-    ui.tokenAddress.value = "So11111111111111111111111111111111111111112";
+  const reference = String(ui.tokenAddress?.value || "").trim();
+  if (!isValidJobReference(reference)) {
+    ui.tokenAddress?.focus();
+    throw new Error("Add a valid reference link or wallet for this job tip.");
   }
-  if (!ethers.isAddress(authorWallet)) throw new Error("Enter a valid tip wallet address");
+  if (!isLikelySolanaAddress(authorWallet)) {
+    setFieldError(ui.authorWallet, ui.authorWalletError, "Paste a valid Solana wallet address. This should be the wallet that receives tips.");
+    setSubmitStatus("Fix the highlighted field above.", true);
+    ui.authorWallet?.focus();
+    throw new Error("Paste a valid SOL wallet address for tips.");
+  }
+  setFieldError(ui.authorWallet, ui.authorWalletError, "");
   let evidenceUrl = String(ui.evidenceUrl?.value || "").trim();
   let evidenceType = String(ui.evidenceType?.value || "").trim();
   const evidenceFile = ui.evidenceFile?.files?.[0] || null;
@@ -468,7 +518,7 @@ async function submitAlpha(event) {
   await api.createAlphaTip({
     projectName: ui.projectName.value,
     tokenSymbol: ui.tokenSymbol.value || "JOBS",
-    tokenAddress: ui.tokenAddress.value,
+    tokenAddress: reference,
     chainId,
     title: ui.title.value,
     teaser: ui.teaser.value,
@@ -485,6 +535,7 @@ async function submitAlpha(event) {
   closeModal(ui.submitModal);
   ui.submitForm.reset();
   if (ui.evidenceName) ui.evidenceName.textContent = "No evidence selected";
+  clearSubmitStatus();
   renderXStatus();
   await loadAlpha();
   setAlert(ui.alert, "Alpha published");
@@ -575,8 +626,14 @@ function bindEvents() {
     fillSubmitDefaults();
     openModal(ui.submitModal);
   });
-  ui.submitClose?.addEventListener("click", () => closeModal(ui.submitModal));
-  ui.submitCancel.forEach((button) => button.addEventListener("click", () => closeModal(ui.submitModal)));
+  ui.submitClose?.addEventListener("click", () => {
+    clearSubmitStatus();
+    closeModal(ui.submitModal);
+  });
+  ui.submitCancel.forEach((button) => button.addEventListener("click", () => {
+    clearSubmitStatus();
+    closeModal(ui.submitModal);
+  }));
   ui.evidenceChoose?.addEventListener("click", () => ui.evidenceFile?.click());
   ui.evidenceFile?.addEventListener("change", () => {
     const file = ui.evidenceFile?.files?.[0] || null;
@@ -584,8 +641,17 @@ function bindEvents() {
     if (ui.evidenceUrl) ui.evidenceUrl.value = "";
     if (ui.evidenceType) ui.evidenceType.value = file?.type || "";
   });
+  ui.authorWallet?.addEventListener("input", () => {
+    if (!ui.authorWalletError?.textContent) return;
+    const value = String(ui.authorWallet.value || "").trim();
+    if (isLikelySolanaAddress(value)) {
+      clearSubmitStatus();
+    }
+  });
   ui.submitForm?.addEventListener("submit", (event) => {
-    submitAlpha(event).catch((error) => setAlert(ui.alert, parseUiError(error), true));
+    submitAlpha(event).catch((error) => {
+      if (!ui.authorWalletError?.textContent) setSubmitStatus(parseUiError(error), true);
+    });
   });
   ui.tipClose?.addEventListener("click", () => closeModal(ui.tipModal));
   ui.tipCancel.forEach((button) => button.addEventListener("click", () => closeModal(ui.tipModal)));

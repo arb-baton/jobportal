@@ -22,8 +22,8 @@ import {
   setPreferredChainId,
   shortAddress,
   walletState
-} from "./core.js?v=20260611walletmodal";
-import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611walletmodal";
+} from "./core.js?v=20260616freshphantom";
+import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260616freshphantom";
 import { initCoinSearchOverlay } from "./searchModal.js?v=20260505a";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 import { KOL_LEADERBOARD } from "./kolData.js?v=20260612kols";
@@ -1476,7 +1476,7 @@ async function connectSolanaWallet() {
     await walletHub?.refresh?.();
     return { provider: ws.provider, publicKey: ws.address };
   }
-  const connected = await connectWallet("phantom");
+  const connected = await connectWallet("phantom", { forcePrompt: true });
   const publicKey = connected?.address || "";
   if (!publicKey) throw new Error("Solana wallet did not return a public key");
   state.solanaWallet = { provider: connected.provider || provider, publicKey };

@@ -1396,6 +1396,12 @@
   color: #7dffc7;
 }
 
+.alpha-x-status.error {
+  border-color: rgba(255, 118, 118, 0.42);
+  background: rgba(255, 118, 118, 0.1);
+  color: #ff9b9b;
+}
+
 .alpha-hot-list {
   display: grid;
   gap: 0.45rem;
@@ -1563,6 +1569,20 @@
   box-shadow: 0 0 0 3px rgba(125, 255, 199, 0.1);
 }
 
+.alpha-modal-card input.field-error,
+.alpha-modal-card input.field-error:focus {
+  border-color: rgba(255, 118, 118, 0.8);
+  box-shadow: 0 0 0 3px rgba(255, 118, 118, 0.14);
+}
+
+.alpha-field-error {
+  min-height: 1.15rem;
+  color: #ff9b9b;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
 .alpha-evidence-upload {
   border: 1px solid rgba(125, 255, 199, 0.2);
   border-radius: 14px;
@@ -1594,6 +1614,28 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.8rem;
+}
+
+.alpha-inline-status {
+  display: none;
+  border: 1px solid rgba(125, 242, 170, 0.28);
+  border-radius: 8px;
+  background: rgba(125, 242, 170, 0.08);
+  color: #7df2aa;
+  padding: 0.72rem 0.82rem;
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.alpha-inline-status.show {
+  display: block;
+}
+
+.alpha-inline-status.error {
+  border-color: rgba(255, 118, 118, 0.4);
+  background: rgba(255, 118, 118, 0.1);
+  color: #ff8f8f;
 }
 
 .alpha-modal-card .go-modal-actions {
@@ -11365,6 +11407,431 @@ body {
   color: #f7f7f7;
 }
 
+.go-source-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  border: 1px solid rgba(125, 242, 170, 0.35);
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: rgba(0, 255, 153, 0.08);
+  color: #7df2aa;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.go-external-link {
+  color: #7df2aa;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.go-external-link:hover {
+  text-decoration: underline;
+}
+
+.go-detail-media-card {
+  overflow: hidden;
+  padding: 0;
+  background: #1b1c1f;
+}
+
+.go-detail-media-card img {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  background: #202124;
+}
+.go-agent-submit-box {
+  display: grid;
+  gap: 0.65rem;
+  width: 100%;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(125, 242, 170, 0.2);
+}
+.go-agent-submit-box label {
+  display: grid;
+  gap: 0.35rem;
+  color: #aeeec3;
+  font-size: 0.72rem;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+.go-agent-submit-box select {
+  width: 100%;
+  border: 1px solid rgba(125, 242, 170, 0.28);
+  border-radius: 8px;
+  background: #090d0b;
+  color: #ecfff2;
+  padding: 0.72rem 0.75rem;
+  font: inherit;
+  font-weight: 900;
+}
+.go-agent-evidence {
+  padding: 0.72rem;
+  border: 1px solid rgba(125, 242, 170, 0.28);
+  border-radius: 10px;
+  background: rgba(125, 242, 170, 0.06);
+}
+.go-agent-evidence .btn-ghost {
+  min-height: 36px;
+  border-color: rgba(125, 242, 170, 0.35);
+  color: #ecfff2;
+  background: rgba(4, 8, 6, 0.78);
+}
+.go-agent-evidence em {
+  color: #b8c9c0;
+  font-size: 0.74rem;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+.go-agent-ai-image {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 0.55rem !important;
+  padding: 0.62rem 0.72rem;
+  border: 1px solid rgba(125, 242, 170, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  color: #dfffe9 !important;
+  font-size: 0.75rem !important;
+  font-weight: 900 !important;
+  line-height: 1.35;
+  text-transform: none !important;
+}
+.go-agent-ai-image input {
+  width: 18px;
+  height: 18px;
+  accent-color: #7df2aa;
+}
+
+/* Pump.fun-style freelance board and submission feed */
+.go-layout {
+  max-width: 1520px;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 1.55rem;
+}
+
+.go-title-row {
+  align-items: end;
+  margin-bottom: 0.9rem;
+}
+
+.go-title-row small {
+  color: #7df2aa;
+}
+
+.go-title-row h1 {
+  font-size: clamp(2rem, 3.4vw, 2.8rem);
+}
+
+.go-tabs {
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.go-tabs button {
+  position: relative;
+  border-radius: 0;
+  padding: 0.7rem 0.9rem;
+  background: transparent;
+  border: 0;
+}
+
+.go-tabs button.active {
+  box-shadow: inset 0 -2px 0 #7df2aa;
+}
+
+.go-feed {
+  column-count: 4;
+  column-gap: 1rem;
+}
+
+.go-card {
+  border-radius: 10px;
+  border-color: #2a2d32;
+  background: #17191d;
+}
+
+.go-card-media {
+  max-height: none;
+  aspect-ratio: 1 / 0.72;
+  object-fit: cover;
+  border-radius: 0;
+  background: #222428;
+}
+
+.go-bounty-card .go-card-body {
+  padding: 0.75rem 0.8rem 0.82rem;
+}
+
+.go-card-title {
+  font-size: 0.98rem;
+}
+
+.go-bounty-card p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: #f4f7ff;
+}
+
+.go-feed-submission {
+  break-inside: avoid;
+}
+
+.go-detail .go-feed-submission {
+  max-width: none;
+  margin: 0 0 1rem;
+}
+
+.go-submission-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.go-submission-head b {
+  display: block;
+  color: #f7f9ff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.go-submission-head small {
+  display: block;
+  color: #9fa9ac;
+  font-size: 0.76rem;
+  margin-top: 0.12rem;
+}
+
+.go-submission-target {
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.38rem 0.58rem;
+  border-radius: 8px;
+  background: #24262a;
+  color: #dfe9ff;
+  font-size: 0.68rem;
+  font-weight: 1000;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.go-submission-body {
+  display: grid;
+  gap: 0.74rem;
+}
+
+.go-submission-body section {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.go-submission-body h4 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 0.82rem;
+  font-weight: 1000;
+}
+
+.go-submission-body p,
+.go-submission-body li {
+  color: #e8edf5;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.go-submission-body p {
+  margin: 0;
+}
+
+.go-submission-body ul {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding-left: 1.05rem;
+}
+
+.go-submission-card .go-card-media {
+  margin-top: 0.2rem;
+  border-radius: 8px;
+  max-height: 520px;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+
+.go-submission-links {
+  gap: 0.4rem;
+}
+
+.go-submission-links a {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.34rem 0.55rem;
+  border: 1px solid #343941;
+  border-radius: 999px;
+  background: #202328;
+  color: #b9d0ff;
+}
+
+.go-side {
+  top: 0.75rem;
+  gap: 0.78rem;
+}
+
+.go-side-card {
+  border-color: #2a2d32;
+  background: #17191d;
+  padding: 0.9rem;
+}
+
+.go-rank-row,
+.go-person-rank-row {
+  min-height: 34px;
+}
+
+.go-top-bounty-card {
+  background: rgba(27, 58, 41, 0.78);
+}
+
+@media (max-width: 1280px) {
+  .go-feed {
+    column-count: 3;
+  }
+}
+
+@media (max-width: 980px) {
+  .go-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .go-side {
+    position: static;
+  }
+
+  .go-feed {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .go-feed {
+    column-count: 1;
+  }
+}
+.go-agent-submit-status {
+  min-height: 1.2rem;
+  color: #9fb0a8;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.go-agent-submit-status.success {
+  color: #7df2aa;
+}
+.go-agent-submit-status.error {
+  color: #ff8d8d;
+}
+.go-agent-status-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.42rem;
+  color: #7df2aa;
+  font-weight: 1000;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(125, 242, 170, 0.7);
+}
+.go-agent-status-link:hover {
+  color: #ecfff2;
+  border-bottom-color: #ecfff2;
+}
+.go-pumpfun-bridge-box {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.72rem;
+  border: 1px solid rgba(125, 242, 170, 0.34);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(125, 242, 170, 0.1), rgba(9, 13, 11, 0.84));
+  box-shadow: 0 12px 32px rgba(0, 255, 153, 0.08);
+}
+.go-pumpfun-bridge-box small {
+  color: #7df2aa;
+  font-size: 0.68rem;
+  font-weight: 1000;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.go-pumpfun-bridge-box b {
+  color: #f2fff6;
+  font-size: 0.9rem;
+}
+.go-pumpfun-bridge-box p {
+  margin: 0;
+  color: #b6c8bd;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+.go-bookmarklet-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border-radius: 9px;
+  border: 1px dashed rgba(125, 242, 170, 0.55);
+  background: rgba(0, 255, 153, 0.1);
+  color: #7df2aa;
+  font-size: 0.78rem;
+  font-weight: 1000;
+  text-align: center;
+}
+.go-pumpfun-bridge-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+.go-pumpfun-bridge-actions .btn-ghost,
+.go-pumpfun-bridge-actions .btn-primary {
+  min-height: 34px;
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.74rem;
+  white-space: normal;
+}
+.go-pumpfun-bridge-box code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #96a99d;
+  font-size: 0.68rem;
+}
+.go-external-submit-btn {
+  width: 100%;
+  border: 1px solid rgba(125, 242, 170, 0.28);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(125, 242, 170, 0.18), #101914 54%, rgba(0, 255, 153, 0.12));
+  color: #dcffe9;
+  padding: 0.74rem 0.9rem;
+  font-weight: 1000;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 24px rgba(0, 255, 153, 0.08);
+}
+
+.go-description p + p {
+  margin-top: 14px;
+}
+
 .go-progress,
 .go-reward-progress,
 .profile-reward-progress {
@@ -12364,6 +12831,88 @@ body {
 .agent-inline-status.error {
   color: #ff8d8d;
 }
+.agent-media-name {
+  color: #9fb0a8;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-top: -0.35rem;
+}
+.agent-action-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+.agent-action-row .btn-ghost,
+.agent-action-row .btn-primary {
+  border: 1px solid rgba(125, 242, 170, 0.28);
+  border-radius: 8px;
+  padding: 0.72rem 0.78rem;
+  font-weight: 1000;
+}
+.agent-action-row .btn-ghost {
+  background: #101914;
+  color: #dcffe9;
+}
+.agent-action-row .btn-primary {
+  background: #69ee9a;
+  color: #031108;
+}
+.agent-run-result {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid rgba(125, 242, 170, 0.32);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(105, 238, 154, 0.12), rgba(10, 18, 13, 0.92));
+  color: #dcffe9;
+  padding: 0.8rem;
+  font-size: 0.8rem;
+}
+.agent-run-result p {
+  margin: 0;
+  color: #a8c7b5;
+  line-height: 1.45;
+}
+.agent-run-result small {
+  color: #8ccfa6;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+.agent-run-result a {
+  color: #69ee9a;
+  font-weight: 1000;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 760px) {
+  .agent-action-row {
+    grid-template-columns: 1fr;
+  }
+}
+.agent-post-media {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border: 1px solid rgba(125, 242, 170, 0.28);
+  border-radius: 8px;
+  background: #070807;
+  margin: 0.55rem 0;
+}
+.agent-media-link,
+.agent-link-list a {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: #7df2aa;
+  font-weight: 900;
+  text-decoration: none;
+}
+.agent-link-list {
+  display: grid;
+  gap: 0.28rem;
+  margin-top: 0.45rem;
+}
 .agent-human-mode .agent-form {
   opacity: 0.72;
 }
@@ -12554,11 +13103,94 @@ button[disabled] {
   font-size: 1rem;
 }
 
+.rpg-xpbar {
+  flex-basis: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #070807;
+  overflow: hidden;
+  border: 1px solid #2a2b2f;
+}
+
+.rpg-xpbar i {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7df2aa, #ffd166);
+  transition: width 220ms ease;
+}
+
 .rpg-quest {
   left: 1rem;
   bottom: 1rem;
   width: min(390px, calc(100% - 2rem));
   padding: 0.9rem;
+}
+
+.rpg-daily {
+  left: 1rem;
+  bottom: 14rem;
+  width: min(390px, calc(100% - 2rem));
+  padding: 0.85rem;
+}
+
+.rpg-daily h2 {
+  margin: 0.15rem 0 0.7rem;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.rpg-daily-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.rpg-daily-item {
+  border: 1px solid #2a2b2f;
+  border-radius: 8px;
+  background: #101113;
+  padding: 0.58rem;
+}
+
+.rpg-daily-item div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.65rem;
+  align-items: baseline;
+}
+
+.rpg-daily-item strong {
+  color: #fff;
+  font-size: 0.76rem;
+}
+
+.rpg-daily-item span {
+  color: #9ea5ae;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-align: right;
+}
+
+.rpg-daily-item i {
+  display: block;
+  height: 7px;
+  border-radius: 999px;
+  background: #070807;
+  margin-top: 0.48rem;
+  overflow: hidden;
+}
+
+.rpg-daily-item b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #7df2aa;
+}
+
+.rpg-daily-item.done strong {
+  color: #7df2aa;
+  text-decoration: line-through;
 }
 
 .rpg-quest h2 {
@@ -12570,6 +13202,39 @@ button[disabled] {
   margin: 0.5rem 0 0.7rem;
   color: #a8a8ad;
   line-height: 1.4;
+}
+
+.rpg-quest-objectives {
+  display: grid;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0 0 0.65rem;
+  padding: 0;
+}
+
+.rpg-quest-objectives li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 0.45rem;
+  align-items: center;
+  color: #d8dde2;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.rpg-quest-objectives span {
+  display: grid;
+  place-items: center;
+  min-height: 22px;
+  border: 1px solid #2a2b2f;
+  border-radius: 5px;
+  color: #7df2aa;
+  background: #101113;
+  font-size: 0.62rem;
+}
+
+.rpg-quest-objectives li.done {
+  color: #7df2aa;
 }
 
 #rpgTarget {
@@ -12636,7 +13301,7 @@ button[disabled] {
 
 .rpg-controls {
   left: 50%;
-  bottom: 1rem;
+  bottom: 6.75rem;
   transform: translateX(-50%);
   display: flex;
   flex-wrap: wrap;
@@ -12644,14 +13309,17 @@ button[disabled] {
   gap: 0.5rem;
   padding: 0.55rem;
   max-width: min(620px, calc(100% - 2rem));
+  background: rgba(10, 12, 11, 0.78);
+  backdrop-filter: blur(10px);
+  border-color: rgba(125, 242, 170, 0.24);
 }
 
 .rpg-controls button {
-  border: 1px solid #2a2b2f;
+  border: 1px solid rgba(125, 242, 170, 0.18);
   border-radius: 6px;
-  background: #151617;
+  background: linear-gradient(180deg, #1b1d20, #101113);
   color: #f8fff9;
-  min-width: 86px;
+  min-width: 78px;
   padding: 0.56rem 0.68rem;
   font: inherit;
   font-weight: 900;
@@ -12669,13 +13337,131 @@ button[disabled] {
   cursor: default;
 }
 
+.rpg-hotbar-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 0.9rem;
+  z-index: 4;
+  width: min(560px, calc(100% - 2rem));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.rpg-player-bars {
+  display: grid;
+  gap: 0.28rem;
+  margin: 0 auto 0.45rem;
+  width: min(470px, 100%);
+}
+
+.rpg-player-bars span {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  color: #f8fff9;
+  font-size: 0.68rem;
+  font-weight: 1000;
+  text-shadow: 0 1px 0 #000;
+}
+
+.rpg-player-bars i {
+  display: block;
+  height: 8px;
+  border: 1px solid #2a2b2f;
+  border-radius: 999px;
+  background: #070807;
+  overflow: hidden;
+}
+
+.rpg-player-bars b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #7df2aa;
+}
+
+.rpg-player-bars span:first-child b {
+  background: linear-gradient(90deg, #ff5470, #7df2aa);
+}
+
+.rpg-gold {
+  position: absolute;
+  left: 0.2rem;
+  bottom: 0.55rem;
+  color: #ffd166;
+  font-weight: 1000;
+  font-size: 0.78rem;
+  text-shadow: 0 1px 0 #000;
+}
+
+.rpg-hotbar {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.48rem;
+  padding: 0.58rem;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 242, 170, 0.24);
+  background: linear-gradient(180deg, rgba(28, 31, 33, 0.94), rgba(8, 10, 9, 0.94));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+.rpg-hotbar-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 2px solid #2a2b2f;
+  border-radius: 10px;
+  background: radial-gradient(circle at 50% 22%, rgba(125, 242, 170, 0.12), transparent 42%), linear-gradient(180deg, #202226, #0b0c0d);
+  color: #f8fff9;
+  font: inherit;
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.rpg-hotbar-slot small,
+.rpg-hotbar-slot b {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #070807;
+  color: #7df2aa;
+  font-size: 0.58rem;
+}
+
+.rpg-hotbar-slot small {
+  left: -4px;
+  bottom: -4px;
+}
+
+.rpg-hotbar-slot b {
+  right: -4px;
+  bottom: -4px;
+}
+
+.rpg-hotbar-slot.active {
+  border-color: #7df2aa;
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 3px rgba(125, 242, 170, 0.2), 0 8px 18px rgba(125, 242, 170, 0.16), inset 0 0 22px rgba(125, 242, 170, 0.12);
+}
+
+.rpg-hotbar-slot:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
 .rpg-wheel {
   right: 1rem;
   top: 7rem;
   width: 250px;
   padding: 0.7rem;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.48rem;
 }
 
@@ -12842,6 +13628,200 @@ button[disabled] {
   font-weight: 1000;
   margin-top: 0.85rem;
   cursor: pointer;
+}
+
+.rpg-outfit-preview {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.22rem 0.72rem;
+  border: 1px solid rgba(125, 242, 170, 0.35);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #122016, #0b0d0c);
+  padding: 0.8rem;
+  margin-top: 0.75rem;
+}
+
+.rpg-dialogue-card {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 0.78rem;
+  align-items: start;
+  border: 1px solid rgba(125, 242, 170, 0.32);
+  border-radius: 8px;
+  background: #101914;
+  padding: 0.78rem;
+}
+
+.rpg-dialogue-portrait {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 3px solid #07100a;
+  border-radius: 12px;
+  color: #07100a;
+  font-weight: 1000;
+  font-size: 1.45rem;
+  box-shadow: inset 0 -14px 0 rgba(0, 0, 0, 0.18);
+}
+
+.rpg-dialogue-card small,
+.rpg-dialogue-card strong {
+  display: block;
+  color: #7df2aa;
+  font-weight: 1000;
+}
+
+.rpg-dialogue-card p {
+  margin: 0.35rem 0 0.55rem;
+}
+
+.rpg-dialogue-actions {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.rpg-dialogue-actions button {
+  border: 1px solid #2a2b2f;
+  border-radius: 6px;
+  background: #151617;
+  color: #f8fff9;
+  padding: 0.62rem 0.82rem;
+  font: inherit;
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.rpg-dialogue-actions button:first-child {
+  background: #7df2aa;
+  color: #07100a;
+  border-color: #7df2aa;
+}
+
+.rpg-bank-grid,
+.rpg-trade-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.rpg-bank-grid div,
+.rpg-trade-grid div,
+.rpg-merchant-card {
+  border: 1px solid #2a2b2f;
+  border-radius: 8px;
+  background: #101113;
+  padding: 0.72rem;
+}
+
+.rpg-bank-grid strong,
+.rpg-bank-grid span,
+.rpg-trade-grid strong,
+.rpg-trade-grid span {
+  display: block;
+}
+
+.rpg-bank-grid strong,
+.rpg-trade-grid strong,
+.rpg-merchant-card h3 {
+  color: #fff;
+  margin: 0;
+}
+
+.rpg-bank-grid span,
+.rpg-trade-grid span {
+  color: #7df2aa;
+  font-weight: 1000;
+  margin-top: 0.25rem;
+}
+
+.rpg-sell-btn:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+
+.rpg-outfit-preview span {
+  grid-row: span 2;
+  width: 44px;
+  height: 44px;
+  border: 3px solid #07100a;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(125, 242, 170, 0.45), inset 0 -12px 0 rgba(0, 0, 0, 0.16);
+}
+
+.rpg-outfit-preview strong,
+.rpg-outfit-preview small {
+  display: block;
+}
+
+.rpg-outfit-preview strong {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.rpg-outfit-preview small {
+  color: #7df2aa;
+  font-weight: 900;
+}
+
+.rpg-outfit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.rpg-outfit-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid #2a2b2f;
+  border-radius: 8px;
+  background: #101113;
+  color: #f8fff9;
+  padding: 0.65rem;
+  font: inherit;
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.rpg-outfit-choice span {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  box-shadow: inset 0 -7px 0 rgba(0, 0, 0, 0.18);
+}
+
+.rpg-outfit-choice.selected,
+.rpg-outfit-choice:hover {
+  border-color: #7df2aa;
+  background: #102316;
+}
+
+.rpg-color-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.rpg-color-row button {
+  width: 34px;
+  height: 34px;
+  border: 2px solid #2a2b2f;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: inset 0 -10px 0 rgba(0, 0, 0, 0.16);
+}
+
+.rpg-color-row button.selected,
+.rpg-color-row button:hover {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(125, 242, 170, 0.24), inset 0 -10px 0 rgba(0, 0, 0, 0.16);
 }
 
 .rpg-activity {
@@ -13076,18 +14056,30 @@ button[disabled] {
 
   .rpg-hud,
   .rpg-quest,
+  .rpg-daily,
   .rpg-chat,
   .rpg-roster,
   .rpg-activity,
   .rpg-wheel,
   .rpg-districts,
   .rpg-log,
-  .rpg-controls {
+  .rpg-controls,
+  .rpg-hotbar-wrap {
     position: relative;
     inset: auto;
     width: auto;
     margin: 0.7rem;
     transform: none;
+  }
+
+  .rpg-hotbar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-radius: 12px;
+  }
+
+  .rpg-gold {
+    position: static;
+    margin-bottom: 0.45rem;
   }
 
   .rpg-canvas {
@@ -13099,4 +14091,71 @@ button[disabled] {
   .rpg-shell {
     overflow: auto;
   }
+}
+
+.go-pumpfun-session-box {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.78rem;
+  border: 1px solid rgba(125, 242, 170, 0.32);
+  border-radius: 10px;
+  background: rgba(7, 14, 10, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(0, 255, 153, 0.04);
+}
+.go-session-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.go-session-head small {
+  color: #7df2aa;
+  font-size: 0.68rem;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+.go-session-head strong {
+  color: #f2fff6;
+  font-size: 0.78rem;
+  text-align: right;
+}
+.go-pumpfun-session-box details {
+  border: 1px solid rgba(125, 242, 170, 0.18);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  color: #b9c8bf;
+  background: rgba(255, 255, 255, 0.025);
+}
+.go-pumpfun-session-box summary {
+  cursor: pointer;
+  color: #7df2aa;
+  font-size: 0.76rem;
+  font-weight: 1000;
+}
+.go-pumpfun-session-box ol {
+  margin: 0.55rem 0 0;
+  padding-left: 1.1rem;
+  color: #b9c8bf;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+.go-pumpfun-session-box input,
+.go-pumpfun-session-box textarea {
+  width: 100%;
+  border: 1px solid rgba(125, 242, 170, 0.25);
+  border-radius: 8px;
+  background: #050806;
+  color: #ecfff2;
+  padding: 0.68rem 0.72rem;
+  font: inherit;
+  font-size: 0.76rem;
+  resize: vertical;
+}
+.go-session-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+.is-disabled-soft {
+  opacity: 0.72;
 }

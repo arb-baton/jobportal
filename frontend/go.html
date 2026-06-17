@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/assets/site.css?v=20260611walletmodal" />
+    <link rel="stylesheet" href="/assets/site.css?v=20260617taskscene" />
   </head>
   <body>
     <div class="app-shell">
@@ -56,7 +56,7 @@
       </aside>
 
       <main class="main-pane">
-        <div class="promo-strip">Official $getmeajob CA: 7BdfmAP5gUAwWAj78Pn3axyLBU7aa6HC8gpfL81Hpump</div>
+        <div class="promo-strip">Official Pump Fun Token Coming Soon</div>
         <header class="topbar create-topbar">
           <div class="create-searchbar">
             <a href="/" class="create-back-btn" aria-label="Back to home">&larr;</a>
@@ -101,6 +101,9 @@
                 <h1 id="goDetailTitle">Task</h1>
                 <div class="go-author-row"><span id="goDetailAvatar" class="go-avatar">EP</span><div><b id="goDetailCreator">Creator</b><small id="goDetailPosted">posted now</small></div></div>
               </article>
+              <article id="goDetailMediaCard" class="panel-card go-detail-media-card" hidden>
+                <img id="goDetailMedia" alt="Bounty media" />
+              </article>
               <article class="panel-card go-description">
                 <h3>Description</h3>
                 <p id="goDetailDescription"></p>
@@ -118,6 +121,55 @@
               <strong id="goRewardTotal">$0</strong>
               <span id="goRewardBreakdown">0 bounties open</span>
               <button id="goSubmitWorkBtn" class="btn-primary" type="button" hidden>Submit work</button>
+              <button id="goExternalSubmitBtn" class="btn-ghost go-external-submit-btn" type="button" hidden>Submit on Pump.fun</button>
+              <div id="goAgentSubmitBox" class="go-agent-submit-box" hidden>
+                <div id="goPumpFunSessionBox" class="go-pumpfun-session-box">
+                  <div class="go-session-head">
+                    <small>Pump.fun session</small>
+                    <strong id="goPumpFunSessionStatus">Not connected</strong>
+                  </div>
+                  <details>
+                    <summary>How to get your session key</summary>
+                    <ol>
+                      <li>Open Pump.fun in this same browser and sign in with the same Phantom wallet.</li>
+                      <li>Press F12, open Application, then Cookies, then https://pump.fun.</li>
+                      <li>Copy the value of auth_token. If needed, also copy the full Cookie header from a Pump.fun network request.</li>
+                      <li>Paste it here. Auto-submit only works when the token wallet matches your Phantom wallet.</li>
+                    </ol>
+                  </details>
+                  <label>auth_token<input id="goPumpFunAuthToken" autocomplete="off" spellcheck="false" placeholder="Paste Pump.fun auth_token" /></label>
+                  <label>Full cookie header <textarea id="goPumpFunCookie" rows="3" autocomplete="off" spellcheck="false" placeholder="Optional: auth_token=...; __cf_bm=...; _cfuvid=..."></textarea></label>
+                  <div class="go-session-actions">
+                    <button id="goSavePumpFunSession" class="btn-primary" type="button">Save session</button>
+                    <button id="goClearPumpFunSession" class="btn-ghost" type="button">Clear</button>
+                  </div>
+                  <div id="goPumpFunSessionMsg" class="go-agent-submit-status" role="status"></div>
+                </div>
+                <label>Use agent<select id="goAgentSelect"><option value="">Load agents...</option></select></label>
+                <label class="go-agent-evidence">
+                  <span>Evidence file for Pump.fun</span>
+                  <input id="goAgentEvidenceFile" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime" />
+                  <button id="goAgentEvidenceChoose" class="btn-ghost" type="button">Choose image or video</button>
+                  <em id="goAgentEvidenceName">No evidence file selected</em>
+                </label>
+                <label class="go-agent-ai-image">
+                  <input id="goAgentGenerateImage" type="checkbox" checked />
+                  <span>Generate AI task-scene image when no evidence file is selected</span>
+                </label>
+                <button id="goRunAgentBtn" class="btn-primary" type="button">Run agent & auto submit</button>
+                <div id="goAgentSubmitStatus" class="go-agent-submit-status" role="status"></div>
+                <div id="goPumpFunBridgeBox" class="go-pumpfun-bridge-box" hidden>
+                  <small>Pump.fun direct submit</small>
+                  <b>Server session ready</b>
+                  <p>Get Me a Job will submit automatically with the configured Pump.fun session. Copy and open are kept here as fallback tools.</p>
+                  <a id="goPumpFunBridgeBookmarklet" class="go-bookmarklet-link" href="#">Copy AI submission</a>
+                  <div class="go-pumpfun-bridge-actions">
+                    <button id="goPumpFunBridgeCopy" class="btn-ghost" type="button">Copy again</button>
+                    <button id="goPumpFunBridgeOpen" class="btn-primary" type="button">Open Pump.fun</button>
+                  </div>
+                  <code id="goPumpFunBridgeId"></code>
+                </div>
+              </div>
             </article>
             <article class="panel-card go-side-card">
               <div class="tokenpf-side-head"><h3>Highest value - open</h3><a href="/go">All open -></a></div>
@@ -220,18 +272,18 @@
         <form id="goSubmitForm" class="go-modal-form go-submit-form">
           <label class="go-upload-label">
             <span>Attach files</span>
-            <input id="goSubmitFile" class="visually-hidden" type="file" accept="image/*" />
+            <input id="goSubmitFile" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime" />
             <div class="go-upload-drop">
               <span class="go-upload-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M8 15l3-3 2 2 2-3 3 4"></path><circle cx="9" cy="9" r="1.2"></circle></svg>
               </span>
               <b>Drop files here: drag and drop here</b>
-              <small>Share proof images here. Add demo clips, PDFs, or docs as links below.</small>
+              <small>Share proof images or videos here. Add PDFs or docs as links below.</small>
               <button id="goSubmitChooseFile" class="btn-ghost" type="button">Choose files</button>
               <em id="goSubmitFileName">No file selected</em>
             </div>
           </label>
-          <label>Description *<textarea id="goSubmitBody" required rows="6" maxlength="700" placeholder="Tell the sponsor what you shipped, what's included, and anything they should review first."></textarea></label>
+          <label>Description *<textarea id="goSubmitBody" required rows="8" maxlength="6000" placeholder="Tell the sponsor what you shipped, what's included, and anything they should review first."></textarea></label>
           <label>Links<input id="goSubmitLinks" placeholder="https://github.com/... or https://drive.google.com/..." /></label>
           <button id="goSubmitAddLink" class="go-add-link" type="button">+ Add link</button>
           <label class="go-submit-terms">Submission terms *
@@ -248,7 +300,12 @@
     </div>
 
     <div id="alert" class="alert"></div>
-    <script type="module" src="/js/go.js?v=20260611walletsync"></script>
+    <script type="module" src="/js/go.js?v=20260617taskscene"></script>
     <script src="/js/sidebar.js?v=20260608airdrop"></script>
   </body>
 </html>
+
+
+
+
+

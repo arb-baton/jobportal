@@ -12,6 +12,7 @@ const levelEl = $("rpgLevel");
 const xpEl = $("rpgXp");
 const cashEl = $("rpgCash");
 const toolEl = $("rpgTool");
+const xpBarEl = $("rpgXpBar");
 const playersEl = $("rpgPlayers");
 const rosterEl = $("rpgRoster");
 const messagesEl = $("rpgMessages");
@@ -27,16 +28,27 @@ const moneyBtn = $("rpgMoneyBtn");
 const buildBtn = $("rpgBuildBtn");
 const attackBtn = $("rpgAttackBtn");
 const centerBtn = $("rpgCenterBtn");
+const unstuckBtn = $("rpgUnstuckBtn");
 const friendsBtn = $("rpgFriendsBtn");
 const bagBtn = $("rpgBagBtn");
 const gatherBtn = $("rpgGatherBtn");
 const statsBtn = $("rpgStatsBtn");
+const outfitBtn = $("rpgOutfitBtn");
 const marketBtn = $("rpgMarketBtn");
 const infoPanel = $("rpgInfoPanel");
 const infoTitle = $("rpgInfoTitle");
 const infoBody = $("rpgInfoBody");
 const infoClose = $("rpgInfoClose");
+const questTitleEl = $("rpgQuestTitle");
+const questObjectivesEl = $("rpgQuestObjectives");
+const dailyQuestsEl = $("rpgDailyQuests");
+const hotbarEl = $("rpgHotbar");
+const hpBarEl = $("rpgHpBar");
+const bottomXpBarEl = $("rpgBottomXpBar");
+const goldEl = $("rpgGold");
 
+const SAVE_KEY = "getmeajob.rpg.progress.v2";
+const todayKey = new Date().toISOString().slice(0, 10);
 const WORLD_X = 60;
 const WORLD_Z = 50;
 const PLAYER_MIN_X = -57;
@@ -81,12 +93,14 @@ const state = {
   moveTarget: null,
   lastSync: 0,
   lastPoll: 0,
+  lastSafeCheck: 0,
   nearestPickup: null,
   nearestEnemy: null,
   nearestActivity: null,
   nearestPlayer: null,
   nearestNpc: null,
   nearestResource: null,
+  nearestStation: null,
   selectedActivity: null,
   selectedTool: "",
   avatar: "builder",
@@ -101,24 +115,84 @@ const state = {
     rod: 0,
     hammer: 0,
     sword: 0,
+    torch: 0,
+    bow: 0,
+    shovel: 0,
     wood: 0,
     stone: 0,
     fish: 0,
+    cookedFish: 0,
+    gold: 0,
     jobProof: 0
   },
   skills: {
     woodcutting: 0,
     mining: 0,
     fishing: 0,
+    cooking: 0,
+    smithing: 0,
     building: 0,
     networking: 0,
-    combat: 0
+    combat: 0,
+    coding: 0,
+    sales: 0,
+    design: 0,
+    kolScore: 0
   },
-  actionUntil: 0
+  actionUntil: 0,
+  hp: 100,
+  maxHp: 100,
+  nodeProgress: {},
+  nodeRespawns: {},
+  fishing: null,
+  daily: {
+    date: todayKey,
+    progress: {}
+  },
+  quest: {
+    id: "tutorial",
+    title: "Tutorial: Gear Up for Hiring Island",
+    objectives: {
+      axe: false,
+      rod: false,
+      fish: false,
+      wood: false,
+      job: false,
+      home: false
+    }
+  }
 };
+
+const hotbarSlots = [
+  { key: "sword", label: "Sword", icon: "SW", action: "attack" },
+  { key: "pickaxe", label: "Pickaxe", icon: "PX", action: "tool" },
+  { key: "axe", label: "Axe", icon: "AX", action: "tool" },
+  { key: "rod", label: "Rod", icon: "RD", action: "tool" },
+  { key: "bow", label: "Bow", icon: "BW", action: "attack" },
+  { key: "shovel", label: "Shovel", icon: "SH", action: "tool" },
+  { key: "torch", label: "Torch", icon: "TR", action: "emote" },
+  { key: "hammer", label: "Hammer", icon: "HM", action: "tool" }
+];
+
+const dailyQuestDefs = [
+  { id: "wood", title: "Chop 6 jobwood", reward: "+120 XP", target: 6 },
+  { id: "mine", title: "Mine 5 offer stone", reward: "+120 XP", target: 5 },
+  { id: "fish", title: "Catch 3 referral fish", reward: "+100 XP", target: 3 },
+  { id: "jobs", title: "Finish 2 job quests", reward: "+200 XP", target: 2 },
+  { id: "combat", title: "Defeat 2 blockers", reward: "+160 XP", target: 2 }
+];
+
+const worldStations = [
+  { id: "campfire", title: "Campfire Kitchen", x: -43, z: 35, kind: "Cooking", action: "Cook fish" },
+  { id: "forge", title: "Armory Forge", x: 11, z: 16, kind: "Smithing", action: "Smith tools" },
+  { id: "merchant", title: "Traveling Merchant", x: -8, z: 12, kind: "Merchant", action: "Trade materials" },
+  { id: "bank", title: "Salary Bank Vault", x: 40, z: 9, kind: "Bank", action: "Open bank" },
+  { id: "bench", title: "Interview Bench", x: -2, z: 4, kind: "Rest", action: "Sit and recover" }
+];
 
 const blockedRects = [];
 const bridgeRects = [];
+const animatedObjects = [];
 
 const activities = [
   { id: "job-board", title: "Job Board Plaza", x: 0, z: 0, xp: 18, pay: 35, jobTitle: "Job Scout", prompt: "Browse live applications, choose a role, and start a public job quest.", action: "Scout openings" },
@@ -155,13 +229,13 @@ const npcs = [
 ];
 
 const resourceNodes = [
-  { id: "wood-1", type: "wood", label: "Jobwood Tree", x: -50, z: -4, tool: "axe", skill: "woodcutting", gives: "wood", amount: 3, xp: 12 },
-  { id: "wood-2", type: "wood", label: "Resume Tree", x: -47, z: 0, tool: "axe", skill: "woodcutting", gives: "wood", amount: 2, xp: 10 },
-  { id: "mine-1", type: "mine", label: "Coal Deadline", x: 45, z: -32, tool: "pickaxe", skill: "mining", gives: "stone", amount: 3, xp: 14 },
-  { id: "mine-2", type: "mine", label: "Offer Ore", x: 40, z: -28, tool: "pickaxe", skill: "mining", gives: "stone", amount: 2, xp: 12 },
-  { id: "fish-1", type: "fish", label: "Referral Pond", x: 18, z: -1, tool: "rod", skill: "fishing", gives: "fish", amount: 2, xp: 12 },
-  { id: "fish-2", type: "fish", label: "KOL Dock", x: 31, z: -16, tool: "rod", skill: "fishing", gives: "fish", amount: 3, xp: 14 },
-  { id: "build-1", type: "build", label: "Construction Yard", x: -31, z: 20, tool: "hammer", skill: "building", gives: "jobProof", amount: 1, xp: 15 }
+  { id: "wood-1", type: "wood", label: "Jobwood Tree", x: -50, z: -4, tool: "axe", skill: "woodcutting", gives: "wood", amount: 3, xp: 12, hits: 3, respawnMs: 60000 },
+  { id: "wood-2", type: "wood", label: "Resume Tree", x: -47, z: 0, tool: "axe", skill: "woodcutting", gives: "wood", amount: 2, xp: 10, hits: 3, respawnMs: 60000 },
+  { id: "mine-1", type: "mine", label: "Coal Deadline", x: 45, z: -32, tool: "pickaxe", skill: "mining", gives: "stone", amount: 3, xp: 14, hits: 2, respawnMs: 45000 },
+  { id: "mine-2", type: "mine", label: "Offer Ore", x: 40, z: -28, tool: "pickaxe", skill: "mining", gives: "stone", amount: 2, xp: 12, hits: 2, respawnMs: 45000 },
+  { id: "fish-1", type: "fish", label: "Referral Pond", x: 18, z: -1, tool: "rod", skill: "fishing", gives: "fish", amount: 2, xp: 12, hits: 1, respawnMs: 12000 },
+  { id: "fish-2", type: "fish", label: "KOL Dock", x: 31, z: -16, tool: "rod", skill: "fishing", gives: "fish", amount: 3, xp: 14, hits: 1, respawnMs: 12000 },
+  { id: "build-1", type: "build", label: "Construction Yard", x: -31, z: 20, tool: "hammer", skill: "building", gives: "jobProof", amount: 1, xp: 15, hits: 2, respawnMs: 30000 }
 ];
 
 const scene = new THREE.Scene();
@@ -283,6 +357,7 @@ function addWaterEdge() {
     dockPost.position.set((27 + (i % 7)) * TILE, 0.3, (-20 + Math.floor(i / 7) * 2.4) * TILE);
     dockPost.castShadow = true;
     world.add(dockPost);
+    blockedRects.push({ x: 27 + (i % 7), z: -20 + Math.floor(i / 7) * 2.4, w: 0.75, d: 0.75 });
   }
 }
 
@@ -386,6 +461,7 @@ function addTower(x, z) {
   group.add(crown);
   group.position.set(x * TILE, 0, z * TILE);
   world.add(group);
+  blockedRects.push({ x, z, w: 3.2, d: 3.2 });
   addSign("OFFER TOWER", x, z + 2.6, "#ffd166");
 }
 
@@ -402,6 +478,7 @@ function addStalls(x, z) {
     stall.add(roof);
     stall.position.set((x + i * 2) * TILE, 0, (z + (i % 2)) * TILE);
     world.add(stall);
+    blockedRects.push({ x: x + i * 2, z: z + (i % 2), w: 1.9, d: 1.5 });
   }
   addSign("FREELANCE MARKET", x + 2.5, z - 2.4, "#7df2aa");
 }
@@ -412,6 +489,7 @@ function addBeach(x, z) {
     towel.position.set((x + i * 2) * TILE, 0.06, (z + (i % 2)) * TILE);
     towel.rotation.y = 0.35;
     world.add(towel);
+    blockedRects.push({ x: x + i * 2, z: z + (i % 2), w: 1.7, d: 0.8 });
   }
   addPalm(x - 2, z + 1);
   addSign("BURNOUT BEACH", x + 4, z - 1.8, "#07100a");
@@ -448,6 +526,7 @@ function addFountain(x, z) {
   spray.position.set(x * TILE, 1.25, z * TILE);
   spray.castShadow = true;
   world.add(spray);
+  blockedRects.push({ x, z, w: 3.6, d: 3.6 });
 }
 
 function addTree(x, z) {
@@ -464,7 +543,7 @@ function addTree(x, z) {
   }
   group.position.set(x * TILE, 0, z * TILE);
   world.add(group);
-  if (Math.random() > 0.8) blockedRects.push({ x, z, w: 0.9, d: 0.9 });
+  blockedRects.push({ x, z, w: 1.05, d: 1.05 });
 }
 
 function addResourceNodes() {
@@ -520,6 +599,7 @@ function addPalm(x, z) {
   }
   group.position.set(x * TILE, 0, z * TILE);
   world.add(group);
+  blockedRects.push({ x, z, w: 1.1, d: 1.1 });
 }
 
 function addNpcs() {
@@ -529,6 +609,7 @@ function addNpcs() {
     group.userData.npc = npc;
     world.add(group);
     state.npcs.set(`npc-${npc.name}`, group);
+    blockedRects.push({ x: npc.x, z: npc.z, w: 0.9, d: 0.9 });
   }
 }
 
@@ -546,6 +627,90 @@ function addWorldDetails() {
   addBoats();
   addOfficeBlocks();
   addMoneyFountain(38, 8);
+  addCampfire(-43, 35);
+  addForge(11, 16);
+  addMerchantWagon(-8, 12);
+  addBench(-2, 4);
+}
+
+function addCampfire(x, z) {
+  const group = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.05, 8, 24), new THREE.MeshStandardMaterial({ color: "#5b4636", roughness: 0.7 }));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.08;
+  group.add(ring);
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.9, 8), new THREE.MeshStandardMaterial({ color: "#ff9f3f", emissive: "#ff5c17", roughness: 0.32 }));
+  flame.position.y = 0.55;
+  flame.castShadow = true;
+  group.add(flame);
+  const light = new THREE.PointLight("#ffb45f", 2.5, 7);
+  light.position.y = 1.2;
+  group.add(light);
+  group.userData.stationId = "campfire";
+  group.userData.flame = flame;
+  animatedObjects.push({ mesh: flame, type: "flame", phase: Math.random() * 10 });
+  group.position.set(x * TILE, 0, z * TILE);
+  world.add(group);
+  blockedRects.push({ x, z, w: 1.5, d: 1.5 });
+  addSign("CAMPFIRE", x, z - 1.4, "#ffd166", 0.78);
+}
+
+function addForge(x, z) {
+  const group = new THREE.Group();
+  const anvil = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.6, 0.78), new THREE.MeshStandardMaterial({ color: "#3a3f43", roughness: 0.55, metalness: 0.2 }));
+  anvil.position.y = 0.3;
+  anvil.castShadow = true;
+  group.add(anvil);
+  const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 1.4, 8), mat.dark);
+  chimney.position.set(0.9, 0.72, 0.2);
+  chimney.castShadow = true;
+  group.add(chimney);
+  group.userData.stationId = "forge";
+  group.position.set(x * TILE, 0, z * TILE);
+  world.add(group);
+  blockedRects.push({ x, z, w: 1.8, d: 1.4 });
+  addSign("FORGE", x, z - 1.4, "#ffb6be", 0.78);
+}
+
+function addMerchantWagon(x, z) {
+  const group = new THREE.Group();
+  const cart = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.9, 1.3), new THREE.MeshStandardMaterial({ color: "#7a5031", roughness: 0.7 }));
+  cart.position.y = 0.6;
+  cart.castShadow = true;
+  group.add(cart);
+  for (const sx of [-0.9, 0.9]) {
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.16, 16), mat.dark);
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(sx, 0.28, -0.76);
+    group.add(wheel);
+  }
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.68, 12), new THREE.MeshStandardMaterial({ color: "#9a6b39", roughness: 0.7 }));
+  barrel.rotation.z = Math.PI / 2;
+  barrel.position.set(0.45, 1.18, 0.08);
+  group.add(barrel);
+  group.userData.stationId = "merchant";
+  animatedObjects.push({ mesh: group, type: "wagon", phase: Math.random() * 10 });
+  group.position.set(x * TILE, 0, z * TILE);
+  world.add(group);
+  blockedRects.push({ x, z, w: 2.8, d: 1.7 });
+  addSign("MERCHANT", x, z - 1.7, "#ffd166", 0.82);
+}
+
+function addBench(x, z) {
+  const group = new THREE.Group();
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.22, 0.55), new THREE.MeshStandardMaterial({ color: "#6d5238", roughness: 0.75 }));
+  seat.position.y = 0.5;
+  seat.castShadow = true;
+  group.add(seat);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.72, 0.18), new THREE.MeshStandardMaterial({ color: "#4c3c2e", roughness: 0.75 }));
+  back.position.set(0, 0.82, 0.28);
+  back.castShadow = true;
+  group.add(back);
+  group.userData.stationId = "bench";
+  group.position.set(x * TILE, 0, z * TILE);
+  world.add(group);
+  blockedRects.push({ x, z, w: 2.3, d: 0.8 });
+  addSign("REST", x, z + 1.1, "#d9ffe9", 0.68);
 }
 
 function addBillboard(text, x, z, color) {
@@ -559,6 +724,7 @@ function addBillboard(text, x, z, color) {
   group.add(board);
   group.position.set(x * TILE, 0, z * TILE);
   world.add(group);
+  blockedRects.push({ x, z, w: 2.9, d: 1.2 });
   addSign(text, x, z - 0.8, "#07100a", 0.72);
 }
 
@@ -590,6 +756,7 @@ function addMoneyFountain(x, z) {
   const base = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.55, 0.3, 24), mat.gold);
   base.position.set(x * TILE, 0.2, z * TILE);
   world.add(base);
+  blockedRects.push({ x, z, w: 3, d: 3 });
   for (let i = 0; i < 9; i++) {
     const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.06, 20), mat.gold);
     coin.position.set((x + Math.cos(i) * 1.1) * TILE, 0.85 + (i % 3) * 0.22, (z + Math.sin(i) * 1.1) * TILE);
@@ -611,6 +778,7 @@ function addStage(x, z) {
   }
   stage.position.set(x * TILE, 0, z * TILE);
   world.add(stage);
+  blockedRects.push({ x, z, w: 6.8, d: 4.1 });
   addSign("CREATOR STAGE", x, z - 3, "#ffb6be");
 }
 
@@ -658,6 +826,21 @@ function makeBubbleSprite(text) {
   const texture = new THREE.CanvasTexture(canvas);
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
   sprite.scale.set(4, 1.25, 1);
+  return sprite;
+}
+
+function spawnFloatText(text, color = "#ffd166", x = 0, z = 0) {
+  const sprite = makeNameSprite(text, color, "rgba(0,0,0,0.36)");
+  sprite.scale.set(2.3, 0.58, 1);
+  sprite.position.set(x * TILE, 2.6, z * TILE);
+  world.add(sprite);
+  animatedObjects.push({
+    mesh: sprite,
+    type: "floatText",
+    born: performance.now(),
+    duration: 1050,
+    phase: Math.random() * 10
+  });
   return sprite;
 }
 
@@ -761,7 +944,7 @@ function makeHomeMesh(home) {
   group.add(label);
   group.position.set((home.x || 0) * TILE, 0, (home.z || 0) * TILE);
   world.add(group);
-  blockedRects.push({ x: Number(home.x || 0), z: Number(home.z || 0), w: 2.5 + tier * 0.35, d: 2.3 + tier * 0.28 });
+  group.userData.blocker = { w: 2.5 + tier * 0.35, d: 2.3 + tier * 0.28 };
   return group;
 }
 
@@ -806,6 +989,184 @@ addMap();
 let localMesh = makeCharacterMesh({ id: "local", name: "You", color: "#7df2aa", avatar: "builder" }, true);
 localMesh.visible = false;
 world.add(localMesh);
+
+function loadProgress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || "{}");
+    if (!saved || typeof saved !== "object") return;
+    if (saved.inventory) state.inventory = { ...state.inventory, ...saved.inventory };
+    if (saved.skills) state.skills = { ...state.skills, ...saved.skills };
+    if (saved.daily?.date === todayKey) {
+      state.daily = {
+        date: todayKey,
+        progress: { ...(saved.daily.progress || {}) }
+      };
+    }
+    if (saved.quest?.objectives) state.quest.objectives = { ...state.quest.objectives, ...saved.quest.objectives };
+    if (saved.selectedTool) state.selectedTool = String(saved.selectedTool || "");
+    if (saved.appearance) {
+      state.avatar = saved.appearance.avatar || state.avatar;
+      state.avatarColor = saved.appearance.color || state.avatarColor;
+    }
+    if (saved.player && state.player) {
+      state.player = {
+        ...state.player,
+        xp: Number(saved.player.xp || state.player.xp || 0),
+        level: Number(saved.player.level || state.player.level || 1),
+        cash: Number(saved.player.cash || state.player.cash || 100),
+        jobTitle: saved.player.jobTitle || state.player.jobTitle || "",
+        hp: Number(saved.player.hp || state.hp || 100),
+        avatar: state.avatar,
+        color: state.avatarColor
+      };
+      state.hp = Number(state.player.hp || state.hp || 100);
+    }
+  } catch {
+    // local progress is optional
+  }
+}
+
+function saveProgress() {
+  if (!state.player) return;
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      player: {
+        xp: state.player.xp || 0,
+        level: state.player.level || 1,
+        cash: state.player.cash || 0,
+        hp: state.hp,
+        jobTitle: state.player.jobTitle || ""
+      },
+      inventory: state.inventory,
+      skills: state.skills,
+      daily: state.daily,
+      selectedTool: state.selectedTool,
+      appearance: {
+        avatar: state.avatar,
+        color: state.avatarColor
+      },
+      quest: state.quest
+    }));
+  } catch {
+    // keep playing even if storage is unavailable
+  }
+}
+
+function addReward({ xp = 0, cash = 0, skill = "", skillXp = 0, item = "", amount = 0, label = "" } = {}) {
+  if (!state.player) return;
+  const beforeLevel = Number(state.player.level || 1);
+  if (item) state.inventory[item] = Number(state.inventory[item] || 0) + Number(amount || 0);
+  if (skill) state.skills[skill] = Number(state.skills[skill] || 0) + Number(skillXp || xp || 0);
+  if (item === "wood") addDailyProgress("wood", Number(amount || 1));
+  if (item === "stone") addDailyProgress("mine", Number(amount || 1));
+  if (item === "fish") addDailyProgress("fish", Number(amount || 1));
+  if (skill === "combat") addDailyProgress("combat", 1);
+  state.player.xp = Number(state.player.xp || 0) + Number(xp || 0);
+  state.player.cash = Number(state.player.cash || 0) + Number(cash || 0);
+  state.player.level = 1 + Math.floor(Number(state.player.xp || 0) / 100);
+  if (state.player.level > beforeLevel) {
+    showBubble(localMesh, "LEVEL UP!");
+    targetEl.textContent = `Level up! You are now level ${state.player.level}.`;
+    sound("activity");
+  } else if (label) {
+    showBubble(localMesh, label);
+  }
+  if (label) spawnFloatText(label, item === "fish" ? "#57d7ff" : "#ffd166", state.player.x, state.player.z);
+  if (cash) spawnFloatText(`+$${cash}`, "#7df2aa", state.player.x + 0.4, state.player.z + 0.15);
+  updateQuestProgress();
+  saveProgress();
+}
+
+function updateQuestProgress() {
+  const q = state.quest.objectives;
+  q.axe = Boolean(state.inventory.axe);
+  q.rod = Boolean(state.inventory.rod);
+  q.fish = Number(state.inventory.fish || 0) > 0;
+  q.wood = Number(state.inventory.wood || 0) >= 5;
+  q.job = Number(state.player?.salary || 0) > 0 || Number(state.player?.cash || 0) >= 250;
+  q.home = state.homes.size > 0 || Boolean(q.home);
+  renderQuestClean();
+}
+
+function renderQuest() {
+  if (!questTitleEl || !questObjectivesEl) return;
+  const q = state.quest.objectives;
+  questTitleEl.textContent = state.quest.title;
+  const rows = [
+    ["Get starter axe from Wendy Wood", q.axe],
+    ["Get fishing rod from Old Fisher", q.rod],
+    ["Catch your first fish", q.fish],
+    ["Gather 5 wood for your first build", q.wood],
+    ["Complete a paid job activity", q.job],
+    ["Build or upgrade your first home", q.home]
+  ];
+  questObjectivesEl.innerHTML = rows
+    .map(([text, done]) => `<li class="${done ? "done" : ""}"><span>${done ? "✓" : ""}</span>${escapeHtml(text)}</li>`)
+    .join("");
+}
+
+function renderQuestClean() {
+  if (!questTitleEl || !questObjectivesEl) return;
+  const q = state.quest.objectives;
+  questTitleEl.textContent = state.quest.title;
+  const rows = [
+    ["Get starter axe from Wendy Wood", q.axe],
+    ["Get fishing rod from Old Fisher", q.rod],
+    ["Catch your first fish", q.fish],
+    ["Gather 5 wood for your first build", q.wood],
+    ["Complete a paid job activity", q.job],
+    ["Build or upgrade your first home", q.home]
+  ];
+  questObjectivesEl.innerHTML = rows
+    .map(([text, done]) => `<li class="${done ? "done" : ""}"><span>${done ? "ok" : ""}</span>${escapeHtml(text)}</li>`)
+    .join("");
+}
+
+function addDailyProgress(id, amount = 1) {
+  if (state.daily.date !== todayKey) state.daily = { date: todayKey, progress: {} };
+  const quest = dailyQuestDefs.find((row) => row.id === id);
+  if (!quest) return;
+  const before = Number(state.daily.progress[id] || 0);
+  const next = Math.min(quest.target, before + amount);
+  state.daily.progress[id] = next;
+  if (before < quest.target && next >= quest.target) {
+    const bonus = id === "jobs" ? 200 : id === "combat" ? 160 : 120;
+    state.player.xp = Number(state.player.xp || 0) + bonus;
+    state.player.level = 1 + Math.floor(Number(state.player.xp || 0) / 100);
+    showBubble(localMesh, "Daily complete!");
+    targetEl.textContent = `${quest.title} complete. ${quest.reward}.`;
+    sound("activity");
+  }
+  renderDailyQuests();
+}
+
+function renderDailyQuests() {
+  if (!dailyQuestsEl) return;
+  if (state.daily.date !== todayKey) state.daily = { date: todayKey, progress: {} };
+  dailyQuestsEl.innerHTML = dailyQuestDefs.map((quest) => {
+    const value = Math.min(quest.target, Number(state.daily.progress[quest.id] || 0));
+    const done = value >= quest.target;
+    const pct = Math.round((value / quest.target) * 100);
+    return `
+      <div class="rpg-daily-item ${done ? "done" : ""}">
+        <div><strong>${escapeHtml(quest.title)}</strong><span>${escapeHtml(quest.reward)} - ${value}/${quest.target}</span></div>
+        <i><b style="width:${pct}%"></b></i>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderHotbar() {
+  if (!hotbarEl) return;
+  hotbarEl.innerHTML = hotbarSlots.map((slot, index) => {
+    const owned = slot.key === "bow" || slot.key === "shovel" || slot.key === "torch" ? 1 : Number(state.inventory[slot.key] || 0);
+    const count = slot.key === "sword" || slot.key === "pickaxe" || slot.key === "axe" || slot.key === "rod" || slot.key === "hammer" ? owned : Number(state.inventory[slot.key] || 0);
+    const active = state.selectedTool === slot.key ? " active" : "";
+    const disabled = slot.action === "tool" && !owned ? " disabled" : "";
+    return `<button class="rpg-hotbar-slot${active}" type="button" data-slot="${slot.key}" data-action="${slot.action}"${disabled} title="${escapeHtml(slot.label)}"><small>${index + 1}</small><span>${escapeHtml(slot.icon)}</span><b>${count || ""}</b></button>`;
+  }).join("");
+}
+
 
 function syncScene(remote) {
   const players = Array.isArray(remote.players) ? remote.players : [];
@@ -883,6 +1244,7 @@ function syncScene(remote) {
   }
 
   renderMessages(remote.messages || []);
+  updateQuestProgress();
 }
 
 function renderMessages(messages) {
@@ -920,6 +1282,13 @@ function updateHud() {
   xpEl.textContent = state.player.xp || 0;
   if (cashEl) cashEl.textContent = Math.floor(Number(state.player.cash || 0));
   if (toolEl) toolEl.textContent = state.selectedTool ? state.selectedTool : "None";
+  if (xpBarEl) xpBarEl.style.width = `${Math.min(100, Number(state.player.xp || 0) % 100)}%`;
+  if (bottomXpBarEl) bottomXpBarEl.style.width = `${Math.min(100, Number(state.player.xp || 0) % 100)}%`;
+  if (hpBarEl) hpBarEl.style.width = `${Math.max(0, Math.min(100, (Number(state.hp || 100) / Number(state.maxHp || 100)) * 100))}%`;
+  if (goldEl) goldEl.textContent = Number(state.inventory.gold || 0);
+  renderHotbar();
+  renderDailyQuests();
+  refreshResourceRespawns();
 
   const nearPickup = findNearestMesh(state.pickups, 2.25);
   const nearEnemy = findNearestMesh(state.enemies, 2.8);
@@ -927,14 +1296,16 @@ function updateHud() {
   const nearPlayer = findNearestPlayer(2.8);
   const nearNpc = findNearestNpc(2.7);
   const nearResource = findNearestResource(2.8);
+  const nearStation = findNearestStation(2.8);
   state.nearestPickup = nearPickup?.id || null;
   state.nearestEnemy = nearEnemy?.id || null;
   state.nearestActivity = nearActivity?.id || null;
   state.nearestPlayer = nearPlayer?.id || null;
   state.nearestNpc = nearNpc?.id || null;
   state.nearestResource = nearResource?.id || null;
+  state.nearestStation = nearStation?.id || null;
 
-  interactBtn.disabled = !(state.nearestActivity || state.nearestPickup || state.nearestPlayer || state.nearestNpc || state.nearestResource);
+  interactBtn.disabled = !(state.nearestActivity || state.nearestPickup || state.nearestPlayer || state.nearestNpc || state.nearestResource || state.nearestStation);
   moneyBtn.disabled = !state.nearestPlayer;
   buildBtn.disabled = Number(state.player.cash || 0) < 180 || !state.inventory.hammer;
   attackBtn.disabled = !state.nearestEnemy;
@@ -956,6 +1327,8 @@ function updateHud() {
   } else if (nearResource) {
     const node = nearResource.mesh.userData.resource;
     targetEl.textContent = `Press E or Tool to use ${node.tool} on ${node.label}.`;
+  } else if (nearStation) {
+    targetEl.textContent = `Press E or Interact: ${nearStation.action} at ${nearStation.title}.`;
   } else {
     targetEl.textContent = "Click anywhere to walk. Visit stations, collect job items, meet NPCs, and build after getting paid.";
     if (!state.selectedActivity) showActivity(null);
@@ -1027,14 +1400,44 @@ function findNearestResource(range) {
   if (!state.player) return null;
   let best = null;
   for (const [id, mesh] of state.resources.entries()) {
+    if (mesh.userData.hiddenUntil && mesh.userData.hiddenUntil > Date.now()) continue;
     const d = Math.hypot(mesh.position.x / TILE - state.player.x, mesh.position.z / TILE - state.player.z);
     if (d <= range && (!best || d < best.distance)) best = { id, mesh, distance: d };
   }
   return best;
 }
 
+function findNearestStation(range) {
+  if (!state.player) return null;
+  let best = null;
+  for (const station of worldStations) {
+    const d = Math.hypot(station.x - state.player.x, station.z - state.player.z);
+    if (d <= range && (!best || d < best.distance)) best = { ...station, distance: d };
+  }
+  return best;
+}
+
+function refreshResourceRespawns() {
+  const now = Date.now();
+  for (const [id, mesh] of state.resources.entries()) {
+    const hiddenUntil = Number(mesh.userData.hiddenUntil || 0);
+    if (hiddenUntil && hiddenUntil <= now) {
+      mesh.visible = true;
+      mesh.userData.hiddenUntil = 0;
+      state.nodeProgress[id] = 0;
+      mesh.rotation.set(0, 0, 0);
+      mesh.scale.set(1, 1, 1);
+    }
+  }
+}
+
 function movement(dt) {
   if (!state.player) return;
+  const now = performance.now();
+  if (now - state.lastSafeCheck > 900) {
+    state.lastSafeCheck = now;
+    if (!canStandAt(state.player.x, state.player.z)) movePlayerToSafeSpot(false);
+  }
   const speed = state.keys.has("shift") ? 8.4 : 5.4;
   const dir = new THREE.Vector3();
   if (state.keys.has("w") || state.keys.has("arrowup")) dir.z -= 1;
@@ -1057,6 +1460,49 @@ function movement(dt) {
   }
   localMesh.position.set(state.player.x * TILE, 0, state.player.z * TILE);
   localMesh.rotation.y = state.player.rot;
+}
+
+function movePlayerToSafeSpot(showMessage = true) {
+  if (!state.player) return false;
+  const spot = findNearestSafeSpot(state.player.x, state.player.z) || { x: 0, z: 6 };
+  state.player.x = spot.x;
+  state.player.z = spot.z;
+  state.moveTarget = null;
+  if (localMesh) {
+    localMesh.position.set(state.player.x * TILE, 0, state.player.z * TILE);
+    localMesh.scale.set(1, 1, 1);
+  }
+  if (showMessage) {
+    targetEl.textContent = "Moved you to the nearest open tile.";
+    showBubble(localMesh, "unstuck");
+  }
+  syncPlayer(true);
+  return true;
+}
+
+function findNearestSafeSpot(x, z) {
+  const seeds = [
+    [0, 6],
+    [-3, 8],
+    [4, 8],
+    [-8, 0],
+    [8, 0],
+    [-12, -2],
+    [12, -2]
+  ];
+  for (const [sx, sz] of seeds) {
+    if (canStandAt(sx, sz)) return { x: sx, z: sz };
+  }
+  for (let radius = 1; radius <= 14; radius++) {
+    for (let step = 0; step < radius * 8; step++) {
+      const angle = (step / (radius * 8)) * Math.PI * 2;
+      const sx = Math.round(x + Math.cos(angle) * radius);
+      const sz = Math.round(z + Math.sin(angle) * radius);
+      if (sx < PLAYER_MIN_X || sx > PLAYER_MAX_X || sz < PLAYER_MIN_Z || sz > PLAYER_MAX_Z) continue;
+      if (canStandAt(sx, sz)) return { x: sx, z: sz };
+    }
+  }
+  return null;
 }
 
 let lastStepSound = 0;
@@ -1088,11 +1534,42 @@ function canStandAt(x, z) {
   for (const rect of blockedRects) {
     if (Math.abs(x - rect.x) <= rect.w / 2 && Math.abs(z - rect.z) <= rect.d / 2) return false;
   }
+  if (isNearBlockedMap(state.npcs, x, z, 0.74)) return false;
+  if (isNearBlockedMap(state.enemies, x, z, 0.82)) return false;
+  if (isNearBlockedHomes(x, z)) return false;
+  for (const mesh of state.resources.values()) {
+    const node = mesh.userData.resource || {};
+    if (node.type === "fish" || mesh.visible === false) continue;
+    const dx = mesh.position.x / TILE - x;
+    const dz = mesh.position.z / TILE - z;
+    if (Math.hypot(dx, dz) < 0.92) return false;
+  }
   return true;
 }
 
 function isBridgeAt(x, z) {
   return bridgeRects.some((rect) => Math.abs(x - rect.x) <= rect.w / 2 && Math.abs(z - rect.z) <= rect.d / 2);
+}
+
+function isNearBlockedMap(map, x, z, radius) {
+  for (const mesh of map.values()) {
+    if (!mesh.visible) continue;
+    const dx = mesh.position.x / TILE - x;
+    const dz = mesh.position.z / TILE - z;
+    if (Math.hypot(dx, dz) < radius) return true;
+  }
+  return false;
+}
+
+function isNearBlockedHomes(x, z) {
+  for (const mesh of state.homes.values()) {
+    if (!mesh.visible) continue;
+    const blocker = mesh.userData.blocker || { w: 2.9, d: 2.6 };
+    const hx = mesh.position.x / TILE;
+    const hz = mesh.position.z / TILE;
+    if (Math.abs(x - hx) <= blocker.w / 2 && Math.abs(z - hz) <= blocker.d / 2) return true;
+  }
+  return false;
 }
 
 async function syncPlayer(force = false) {
@@ -1133,6 +1610,7 @@ async function collectNearest() {
   try {
     const payload = await api.post("/api/rpg/collect", { id: state.player.id, itemId: state.nearestPickup });
     state.player = payload.player || state.player;
+    saveProgress();
     sound("collect");
     syncScene(payload.state || {});
     return true;
@@ -1148,6 +1626,10 @@ async function attackNearest() {
   try {
     const payload = await api.post("/api/rpg/attack", { id: state.player.id, enemyId: state.nearestEnemy });
     state.player = payload.player || state.player;
+    state.skills.combat = Number(state.skills.combat || 0) + 12;
+    state.hp = Math.max(28, Number(state.hp || 100) - randInt(3, 9));
+    addDailyProgress("combat", 1);
+    saveProgress();
     sound("attack");
     syncScene(payload.state || {});
     return true;
@@ -1171,6 +1653,13 @@ async function runActivity() {
     });
     state.player = payload.player || state.player;
     state.player.activity = activity.title;
+    if (activity.id === "job-board") state.skills.sales = Number(state.skills.sales || 0) + 10;
+    if (activity.id === "agent-lab") state.skills.coding = Number(state.skills.coding || 0) + 12;
+    if (activity.id === "creator-stage") state.skills.design = Number(state.skills.design || 0) + 10;
+    if (activity.id === "kol-harbor") state.skills.kolScore = Number(state.skills.kolScore || 0) + 12;
+    addDailyProgress("jobs", 1);
+    state.hp = Math.min(Number(state.maxHp || 100), Number(state.hp || 100) + 5);
+    saveProgress();
     sound("activity");
     showBubble(localMesh, `+${activity.xp} XP`);
     syncScene(payload.state || {});
@@ -1196,6 +1685,7 @@ async function throwMoney() {
       z: state.player.z,
       rot: state.player.rot
     };
+    saveProgress();
     showBubble(localMesh, "threw $25");
     sound("collect");
     syncScene(payload.state || {});
@@ -1230,6 +1720,7 @@ async function buildHome() {
     state.inventory.wood = Number(state.inventory.wood || 0) - woodCost;
     state.inventory.stone = Number(state.inventory.stone || 0) - stoneCost;
     state.skills.building = Number(state.skills.building || 0) + 35;
+    state.quest.objectives.home = true;
     state.player = {
       ...(payload.player || state.player),
       x: state.player.x,
@@ -1238,6 +1729,7 @@ async function buildHome() {
     };
     showBubble(localMesh, "built a home");
     sound("activity");
+    saveProgress();
     syncScene(payload.state || {});
     renderInfoPanel(infoPanel?.hidden ? null : infoTitle?.textContent);
     return true;
@@ -1263,17 +1755,83 @@ function gatherNearestResource() {
     return false;
   }
   if (performance.now() < state.actionUntil) return false;
-  state.actionUntil = performance.now() + 850;
-  state.inventory[node.gives] = Number(state.inventory[node.gives] || 0) + node.amount;
-  state.skills[node.skill] = Number(state.skills[node.skill] || 0) + node.xp;
-  state.player.xp = Number(state.player.xp || 0) + node.xp;
-  state.player.cash = Number(state.player.cash || 0) + Math.max(4, Math.floor(node.xp / 2));
-  state.player.level = 1 + Math.floor(Number(state.player.xp || 0) / 100);
+  if (mesh.userData.hiddenUntil && mesh.userData.hiddenUntil > Date.now()) {
+    targetEl.textContent = `${node.label} is respawning. Try another node.`;
+    return false;
+  }
+  if (node.type === "fish") return runFishingLoop(node, mesh);
+  state.actionUntil = performance.now() + 620;
+  const hits = Number(node.hits || 1);
+  const nextHit = Number(state.nodeProgress[node.id] || 0) + 1;
+  state.nodeProgress[node.id] = nextHit;
+  animateToolUse(node.type, mesh);
+  showBubble(localMesh, `${nextHit}/${hits}`);
+  if (nextHit < hits) {
+    targetEl.textContent = `${node.label}: ${hits - nextHit} more hit${hits - nextHit === 1 ? "" : "s"}.`;
+    sound(node.type === "build" ? "activity" : "attack");
+    return true;
+  }
+  state.nodeProgress[node.id] = 0;
+  const cash = Math.max(10, Math.floor(node.xp * 1.25));
+  addReward({
+    xp: node.xp,
+    cash,
+    skill: node.skill,
+    skillXp: node.xp,
+    item: node.gives,
+    amount: node.amount,
+    label: `+${node.amount} ${node.gives}`
+  });
+  state.player.activity = `${node.label}`;
+  mesh.userData.hiddenUntil = Date.now() + Number(node.respawnMs || 30000);
+  if (node.type === "wood") {
+    mesh.rotation.z = -0.9;
+    mesh.scale.set(1, 0.42, 1);
+  } else if (node.type !== "build") {
+    mesh.visible = false;
+  }
+  targetEl.textContent = `${node.label}: +${node.amount} ${node.gives}, +${node.xp} XP, +$${cash}.`;
+  sound(node.type === "build" ? "activity" : "attack");
+  renderInfoPanel(infoPanel?.hidden ? null : infoTitle?.textContent);
+  syncPlayer(true);
+  return true;
+}
+
+function runFishingLoop(node, mesh) {
+  const now = Date.now();
+  if (!state.fishing || state.fishing.nodeId !== node.id) {
+    state.fishing = { nodeId: node.id, readyAt: now + randInt(2000, 5000) };
+    state.actionUntil = performance.now() + 700;
+    animateToolUse("fish", mesh);
+    targetEl.textContent = `${node.label}: cast line... wait for the bobber, then press E again.`;
+    showBubble(localMesh, "cast line");
+    sound("chat");
+    return true;
+  }
+  if (now < state.fishing.readyAt) {
+    targetEl.textContent = `${node.label}: wait for the bobber to dip...`;
+    showBubble(localMesh, "wait...");
+    return true;
+  }
+  state.fishing = null;
+  const rare = Math.random() < 0.05;
+  const amount = rare ? node.amount + 2 : node.amount;
+  const xp = rare ? 50 : node.xp;
+  const cash = rare ? 100 : 20;
+  addReward({
+    xp,
+    cash,
+    skill: node.skill,
+    skillXp: xp,
+    item: node.gives,
+    amount,
+    label: rare ? "rare fish!" : `+${amount} fish`
+  });
   state.player.activity = `${node.label}`;
   animateToolUse(node.type, mesh);
-  showBubble(localMesh, `+${node.amount} ${node.gives}`);
-  targetEl.textContent = `${node.label}: +${node.amount} ${node.gives}, +${node.xp} ${node.skill} XP.`;
-  sound(node.type === "fish" ? "collect" : "attack");
+  mesh.userData.hiddenUntil = Date.now() + Number(node.respawnMs || 12000);
+  targetEl.textContent = rare ? `Golden catch! +${xp} XP and +$${cash}.` : `Caught fish. +${xp} XP and +$${cash}.`;
+  sound("collect");
   renderInfoPanel(infoPanel?.hidden ? null : infoTitle?.textContent);
   syncPlayer(true);
   return true;
@@ -1351,20 +1909,124 @@ function interactNpc() {
   state.player.xp = Number(state.player.xp || 0) + 8;
   state.player.cash = Number(state.player.cash || 0) + 10;
   state.player.activity = `Talking to ${npc.name}`;
+  state.skills.networking = Number(state.skills.networking || 0) + 6;
   targetEl.textContent = `${npc.name}: ${text}${reward ? ` Tool unlocked: ${reward}.` : " +8 XP and $10."}`;
   sound("chat");
-  renderInfoPanel(infoPanel?.hidden ? null : infoTitle?.textContent);
+  updateQuestProgress();
+  saveProgress();
+  renderNpcDialogue(npc, text, reward);
   syncPlayer(true);
   return true;
 }
 
+function renderNpcDialogue(npc, text, reward = "") {
+  if (!infoPanel || !infoTitle || !infoBody) return;
+  infoPanel.hidden = false;
+  infoTitle.textContent = npc.name;
+  infoBody.innerHTML = `
+    <div class="rpg-dialogue-card">
+      <div class="rpg-dialogue-portrait" style="background:${escapeHtml(npc.color || "#7df2aa")}">${escapeHtml((npc.name || "?").slice(0, 1))}</div>
+      <div>
+        <small>${escapeHtml(npc.role || "Guide")}</small>
+        <p>${escapeHtml(text)}</p>
+        ${reward ? `<strong>Unlocked: ${escapeHtml(reward)}</strong>` : `<strong>Reward: +8 XP and $10</strong>`}
+      </div>
+    </div>
+    <div class="rpg-dialogue-actions">
+      <button type="button" data-dialogue-action="quest">Accept tip</button>
+      <button type="button" data-dialogue-action="close">Back to world</button>
+    </div>
+  `;
+  infoBody.querySelector("[data-dialogue-action='quest']")?.addEventListener("click", () => {
+    targetEl.textContent = `${npc.name}'s tip added to your route.`;
+    showBubble(localMesh, "quest accepted");
+    if (infoPanel) infoPanel.hidden = true;
+  });
+  infoBody.querySelector("[data-dialogue-action='close']")?.addEventListener("click", () => {
+    if (infoPanel) infoPanel.hidden = true;
+  });
+}
+
 async function primaryInteract() {
+  if (state.nearestStation) return interactStation();
   if (state.nearestActivity) return runActivity();
   if (state.nearestPickup) return collectNearest();
   if (state.nearestPlayer) return interactPlayer();
   if (state.nearestNpc) return interactNpc();
   if (state.nearestResource) return gatherNearestResource();
   return false;
+}
+
+function interactStation() {
+  const station = worldStations.find((row) => row.id === state.nearestStation);
+  if (!station) return false;
+  if (station.id === "campfire") return cookFish();
+  if (station.id === "forge") return smithItem();
+  if (station.id === "merchant") {
+    renderInfoPanel("Merchant");
+    return true;
+  }
+  if (station.id === "bank") {
+    renderInfoPanel("Bank");
+    return true;
+  }
+  if (station.id === "bench") {
+    state.hp = state.maxHp;
+    state.player.cash = Number(state.player.cash || 0) + 5;
+    state.skills.networking = Number(state.skills.networking || 0) + 4;
+    showBubble(localMesh, "rested");
+    targetEl.textContent = "You sat down, recovered HP, and rehearsed your pitch.";
+    sound("activity");
+    saveProgress();
+    return true;
+  }
+  return false;
+}
+
+function cookFish() {
+  if (!state.player) return false;
+  if (Number(state.inventory.fish || 0) <= 0) {
+    targetEl.textContent = "Catch fish first, then bring it to the campfire.";
+    renderInfoPanel("Inventory");
+    return false;
+  }
+  state.inventory.fish = Number(state.inventory.fish || 0) - 1;
+  state.inventory.cookedFish = Number(state.inventory.cookedFish || 0) + 1;
+  state.skills.cooking = Number(state.skills.cooking || 0) + 10;
+  state.player.xp = Number(state.player.xp || 0) + 10;
+  state.player.cash = Number(state.player.cash || 0) + 12;
+  state.hp = Math.min(state.maxHp, Number(state.hp || 100) + 18);
+  state.player.level = 1 + Math.floor(Number(state.player.xp || 0) / 100);
+  showBubble(localMesh, "+cooked fish");
+  targetEl.textContent = "Cooked fish. +10 Cooking XP, +$12, HP restored.";
+  sound("collect");
+  saveProgress();
+  renderInfoPanel(infoPanel?.hidden ? null : infoTitle?.textContent);
+  syncPlayer(true);
+  return true;
+}
+
+function smithItem() {
+  if (!state.player) return false;
+  if (Number(state.inventory.stone || 0) < 3 || Number(state.inventory.wood || 0) < 2) {
+    targetEl.textContent = "Smithing needs 3 stone and 2 wood.";
+    renderInfoPanel("Inventory");
+    return false;
+  }
+  state.inventory.stone = Number(state.inventory.stone || 0) - 3;
+  state.inventory.wood = Number(state.inventory.wood || 0) - 2;
+  state.inventory.jobProof = Number(state.inventory.jobProof || 0) + 1;
+  state.skills.smithing = Number(state.skills.smithing || 0) + 15;
+  state.player.xp = Number(state.player.xp || 0) + 15;
+  state.player.cash = Number(state.player.cash || 0) + 20;
+  state.player.level = 1 + Math.floor(Number(state.player.xp || 0) / 100);
+  showBubble(localMesh, "crafted proof");
+  targetEl.textContent = "Smithing complete. Crafted Job Proof, +15 Smithing XP, +$20.";
+  sound("activity");
+  saveProgress();
+  renderInfoPanel(infoPanel?.hidden ? null : infoTitle?.textContent);
+  syncPlayer(true);
+  return true;
 }
 
 function punchAnimation() {
@@ -1432,11 +2094,13 @@ joinForm.addEventListener("submit", async (event) => {
     role: roleInput.value,
     color: state.avatarColor,
     avatar: state.avatar,
-    x: randFloat(-2, 2),
-    z: randFloat(-2, 2),
+    x: randFloat(-0.8, 0.8),
+    z: randFloat(5.6, 7.2),
     activity: "Exploring"
   });
   state.player = payload.player;
+  loadProgress();
+  if (!canStandAt(state.player.x, state.player.z)) movePlayerToSafeSpot(false);
   world.remove(localMesh);
   localMesh = makeCharacterMesh(state.player, true);
   localMesh.visible = true;
@@ -1445,6 +2109,8 @@ joinForm.addEventListener("submit", async (event) => {
   namegate.hidden = true;
   chatInput.blur();
   sound("join");
+  updateQuestProgress();
+  saveProgress();
   startLiveEvents();
   await syncPlayer(true);
 });
@@ -1469,11 +2135,18 @@ centerBtn?.addEventListener("click", () => {
   state.cameraLock = true;
   state.moveTarget = null;
 });
+unstuckBtn?.addEventListener("click", () => movePlayerToSafeSpot(true));
 gatherBtn?.addEventListener("click", gatherNearestResource);
 bagBtn?.addEventListener("click", () => renderInfoPanel("Inventory"));
 statsBtn?.addEventListener("click", () => renderInfoPanel("Stats"));
 marketBtn?.addEventListener("click", () => renderInfoPanel("Marketplace"));
 friendsBtn?.addEventListener("click", () => renderInfoPanel("Players"));
+outfitBtn?.addEventListener("click", () => renderInfoPanel("Outfit"));
+hotbarEl?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-slot]");
+  if (!button || button.disabled) return;
+  activateHotbarSlot(button.dataset.slot, button.dataset.action);
+});
 infoClose?.addEventListener("click", () => {
   if (infoPanel) infoPanel.hidden = true;
 });
@@ -1503,6 +2176,11 @@ window.addEventListener("keydown", (event) => {
   if (key === "q") gatherNearestResource();
   if (key === "i") renderInfoPanel("Inventory");
   if (key === "m") renderInfoPanel("Marketplace");
+  if (key === "o") renderInfoPanel("Outfit");
+  if (/^[1-8]$/.test(key)) {
+    const slot = hotbarSlots[Number(key) - 1];
+    if (slot) activateHotbarSlot(slot.key, slot.action);
+  }
   if (key === "f") interactPlayer();
   if (event.code === "Space") {
     event.preventDefault();
@@ -1513,6 +2191,38 @@ window.addEventListener("keydown", (event) => {
     chatInput.focus();
   }
 });
+
+function activateHotbarSlot(key, action) {
+  if (!state.player) return;
+  const slot = hotbarSlots.find((row) => row.key === key);
+  if (!slot) return;
+  if (action === "attack") {
+    state.selectedTool = key;
+    if (!state.nearestEnemy) {
+      targetEl.textContent = `${slot.label} ready. Move near a blocker and press Space.`;
+      showBubble(localMesh, `${slot.label} ready`);
+      renderHotbar();
+      return;
+    }
+    attackNearest();
+    return;
+  }
+  if (action === "emote") {
+    showBubble(localMesh, "ready to grind");
+    targetEl.textContent = "Torch equipped. The night shift begins.";
+    sound("chat");
+    return;
+  }
+  if (!state.inventory[key]) {
+    targetEl.textContent = `${slot.label} is locked. Talk to its tutorial NPC first.`;
+    showBubble(localMesh, "locked");
+    return;
+  }
+  state.selectedTool = state.selectedTool === key ? "" : key;
+  targetEl.textContent = state.selectedTool ? `${slot.label} equipped.` : "Tool cleared.";
+  renderHotbar();
+  renderInfoPanel(infoPanel?.hidden ? null : infoTitle?.textContent);
+}
 
 function renderInfoPanel(mode) {
   if (!mode || !infoPanel || !infoTitle || !infoBody) return;
@@ -1528,6 +2238,8 @@ function renderInfoPanel(mode) {
       ["wood", "Wood", state.inventory.wood],
       ["stone", "Stone", state.inventory.stone],
       ["fish", "Fish", state.inventory.fish],
+      ["cookedFish", "Cooked Fish", state.inventory.cookedFish],
+      ["gold", "Gold", state.inventory.gold],
       ["jobProof", "Job Proof", state.inventory.jobProof]
     ];
     const tools = new Set(["axe", "pickaxe", "rod", "hammer", "sword"]);
@@ -1550,6 +2262,64 @@ function renderInfoPanel(mode) {
     });
     return;
   }
+  if (mode === "Bank") {
+    infoBody.innerHTML = `
+      <p>Store value from the job hunt. Gold is earned by trading bulk materials with the merchant.</p>
+      <div class="rpg-bank-grid">
+        <div><strong>Cash</strong><span>$${Math.floor(Number(state.player?.cash || 0))}</span></div>
+        <div><strong>Gold</strong><span>${Number(state.inventory.gold || 0)}</span></div>
+        <div><strong>Cooked Fish</strong><span>${Number(state.inventory.cookedFish || 0)}</span></div>
+        <div><strong>Job Proof</strong><span>${Number(state.inventory.jobProof || 0)}</span></div>
+      </div>
+      <button class="rpg-sell-btn" type="button" data-bank-stake="1">Stake 1 gold for +75 XP</button>
+    `;
+    infoBody.querySelector("[data-bank-stake]")?.addEventListener("click", () => {
+      if (Number(state.inventory.gold || 0) < 1) {
+        targetEl.textContent = "Trade materials with the merchant to earn gold first.";
+        return;
+      }
+      state.inventory.gold = Number(state.inventory.gold || 0) - 1;
+      state.player.xp = Number(state.player.xp || 0) + 75;
+      state.player.level = 1 + Math.floor(Number(state.player.xp || 0) / 100);
+      state.skills.networking = Number(state.skills.networking || 0) + 25;
+      targetEl.textContent = "Gold staked at the Salary Bank. +75 XP.";
+      sound("collect");
+      saveProgress();
+      renderInfoPanel("Bank");
+    });
+    return;
+  }
+  if (mode === "Merchant") {
+    const canTrade = Number(state.inventory.wood || 0) >= 12 || Number(state.inventory.stone || 0) >= 8 || Number(state.inventory.cookedFish || 0) >= 3;
+    infoBody.innerHTML = `
+      <div class="rpg-merchant-card">
+        <h3>Traveling Merchant</h3>
+        <p>Bring a bundle and I will drop a gold coin in your hand.</p>
+        <div class="rpg-trade-grid">
+          <div><strong>Wood</strong><span>${Number(state.inventory.wood || 0)} / 12</span></div>
+          <div><strong>Stone</strong><span>${Number(state.inventory.stone || 0)} / 8</span></div>
+          <div><strong>Cooked Fish</strong><span>${Number(state.inventory.cookedFish || 0)} / 3</span></div>
+          <div><strong>Reward</strong><span>1 gold</span></div>
+        </div>
+      </div>
+      <button class="rpg-sell-btn" type="button" data-merchant-trade="1" ${canTrade ? "" : "disabled"}>Trade materials -> 1 gold</button>
+    `;
+    infoBody.querySelector("[data-merchant-trade]")?.addEventListener("click", () => {
+      if (Number(state.inventory.wood || 0) >= 12) state.inventory.wood = Number(state.inventory.wood || 0) - 12;
+      else if (Number(state.inventory.stone || 0) >= 8) state.inventory.stone = Number(state.inventory.stone || 0) - 8;
+      else if (Number(state.inventory.cookedFish || 0) >= 3) state.inventory.cookedFish = Number(state.inventory.cookedFish || 0) - 3;
+      else return;
+      state.inventory.gold = Number(state.inventory.gold || 0) + 1;
+      state.player.xp = Number(state.player.xp || 0) + 40;
+      state.player.level = 1 + Math.floor(Number(state.player.xp || 0) / 100);
+      targetEl.textContent = "Merchant trade complete. +1 gold and +40 XP.";
+      showBubble(localMesh, "+1 gold");
+      sound("collect");
+      saveProgress();
+      renderInfoPanel("Merchant");
+    });
+    return;
+  }
   if (mode === "Stats") {
     const rows = Object.entries(state.skills).map(([name, xp]) => {
       const level = Math.max(1, 1 + Math.floor(Number(xp || 0) / 50));
@@ -1557,6 +2327,29 @@ function renderInfoPanel(mode) {
       return `<div class="rpg-skill-row"><strong>${escapeHtml(name)}</strong><span>Lvl ${level}</span><i><b style="width:${pct}%"></b></i></div>`;
     }).join("");
     infoBody.innerHTML = `${rows}<div class="rpg-total-level">Total Level ${Object.values(state.skills).reduce((sum, xp) => sum + 1 + Math.floor(Number(xp || 0) / 50), 0)}</div>`;
+    return;
+  }
+  if (mode === "Outfit") {
+    const avatarRows = Object.entries(avatars)
+      .map(([key, row]) => `<button class="rpg-outfit-choice ${state.avatar === key ? "selected" : ""}" type="button" data-avatar="${escapeHtml(key)}"><span style="background:${escapeHtml(row.color)}"></span><strong>${escapeHtml(row.name)}</strong></button>`)
+      .join("");
+    const colors = ["#7df2aa", "#8ea4ff", "#ffd166", "#ff7d97", "#d9ffe9", "#57d7ff", "#b98cff", "#f8fff9"];
+    infoBody.innerHTML = `
+      <p>Update your avatar while staying in the world. Changes save locally and sync to other players.</p>
+      <div class="rpg-outfit-preview">
+        <span style="background:${escapeHtml(state.avatarColor)}"></span>
+        <strong>${escapeHtml(state.player?.name || "Player")}</strong>
+        <small>${escapeHtml(avatars[state.avatar]?.name || "Builder")}</small>
+      </div>
+      <div class="rpg-outfit-grid">${avatarRows}</div>
+      <div class="rpg-color-row">${colors.map((color) => `<button class="${state.avatarColor === color ? "selected" : ""}" type="button" data-color="${color}" style="background:${color}"></button>`).join("")}</div>
+    `;
+    infoBody.querySelectorAll("[data-avatar]").forEach((button) => {
+      button.addEventListener("click", () => updateOutfit(button.dataset.avatar || state.avatar, state.avatarColor));
+    });
+    infoBody.querySelectorAll("[data-color]").forEach((button) => {
+      button.addEventListener("click", () => updateOutfit(state.avatar, button.dataset.color || state.avatarColor));
+    });
     return;
   }
   if (mode === "Marketplace") {
@@ -1587,6 +2380,23 @@ function renderInfoPanel(mode) {
   }
   const players = Array.from(state.remotePlayers.values()).map((mesh) => mesh.userData.playerName || "Player");
   infoBody.innerHTML = `<p>${players.length ? `Nearby live players: ${players.map(escapeHtml).join(", ")}` : "Open a second tab to test live multiplayer interactions."}</p>`;
+}
+
+function updateOutfit(avatar, color) {
+  if (!state.player) return;
+  state.avatar = avatars[avatar] ? avatar : state.avatar;
+  state.avatarColor = /^#[0-9a-fA-F]{6}$/.test(String(color || "")) ? color : state.avatarColor;
+  state.player.avatar = state.avatar;
+  state.player.color = state.avatarColor;
+  const prev = localMesh;
+  world.remove(prev);
+  localMesh = makeCharacterMesh(state.player, true);
+  localMesh.visible = true;
+  world.add(localMesh);
+  saveProgress();
+  syncPlayer(true);
+  targetEl.textContent = "Outfit updated.";
+  renderInfoPanel("Outfit");
 }
 
 window.addEventListener("keyup", (event) => {
@@ -1634,6 +2444,14 @@ function animate(now) {
   for (const mesh of state.enemies.values()) {
     mesh.rotation.y += dt * 1.15;
     mesh.position.y = Math.sin(t * 2.2 + mesh.position.z) * 0.08;
+  }
+  for (const item of animatedObjects) {
+    if (item.type === "flame") {
+      const pulse = 1 + Math.sin(t * 8 + item.phase) * 0.14;
+      item.mesh.scale.set(pulse, 1 + Math.sin(t * 10 + item.phase) * 0.2, pulse);
+    } else if (item.type === "wagon") {
+      item.mesh.position.y = Math.sin(t * 1.8 + item.phase) * 0.04;
+    }
   }
   const targetX = (state.player?.x || 0) * TILE;
   const targetZ = (state.player?.z || 0) * TILE;

@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/assets/site.css?v=20260611walletmodal" />
+    <link rel="stylesheet" href="/assets/site.css?v=20260615tipsinline" />
   </head>
   <body>
     <div class="app-shell">
@@ -56,7 +56,7 @@
       </aside>
 
       <main class="main-pane">
-        <div class="promo-strip">Official $getmeajob CA: 7BdfmAP5gUAwWAj78Pn3axyLBU7aa6HC8gpfL81Hpump</div>
+        <div class="promo-strip">Official Pump Fun Token Coming Soon</div>
         <header class="topbar create-topbar">
           <div class="create-searchbar">
             <a href="/" class="create-back-btn" aria-label="Back to home">&larr;</a>
@@ -155,7 +155,11 @@
           <label>Category<input id="alphaCategory" maxlength="32" placeholder="Catalyst, wallet flow, listing..." /></label>
           <label>Confidence<select id="alphaConfidence"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
         </div>
-        <label>Tip wallet<input id="alphaAuthorWallet" placeholder="Defaults to connected wallet" /></label>
+        <label>Tip wallet
+          <input id="alphaAuthorWallet" placeholder="Paste your SOL tip wallet" required />
+          <span id="alphaAuthorWalletError" class="alpha-field-error" aria-live="polite"></span>
+        </label>
+        <div id="alphaSubmitStatus" class="alpha-inline-status" role="status" aria-live="polite"></div>
         </div>
         <div class="go-modal-actions">
           <button class="btn-ghost alphaSubmitCancel" type="button">Cancel</button>
@@ -186,6 +190,6 @@
 
     <div id="alert" class="alert" role="status"></div>
     <script src="/js/sidebar.js?v=20260608airdrop"></script>
-    <script type="module" src="/js/alpha.js?v=20260611walletsync"></script>
+    <script type="module" src="/js/alpha.js?v=20260616freshphantom"></script>
   </body>
 </html>

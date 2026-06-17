@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/assets/site.css?v=20260613rpg6" />
+    <link rel="stylesheet" href="/assets/site.css?v=20260613rpg12" />
   </head>
   <body>
     <div class="app-shell">
@@ -41,9 +41,15 @@
       </aside>
 
       <main class="main-pane rpg-pane">
-        <div class="promo-strip">Official $getmeajob CA: 7BdfmAP5gUAwWAj78Pn3axyLBU7aa6HC8gpfL81Hpump</div>
+        <div class="promo-strip">Official Pump Fun Token Coming Soon</div>
         <section class="rpg-shell">
           <div id="rpgCanvas" class="rpg-canvas"></div>
+
+          <div class="rpg-daily rpg-panel">
+            <small>Daily Quests</small>
+            <h2>Today on Hiring Island</h2>
+            <div id="rpgDailyQuests" class="rpg-daily-list"></div>
+          </div>
 
           <div class="rpg-hud rpg-panel">
             <div>
@@ -57,13 +63,15 @@
               <span><b id="rpgTool">None</b> Tool</span>
               <span><b id="rpgPlayers">1</b> Online</span>
             </div>
+            <div class="rpg-xpbar"><i id="rpgXpBar"></i></div>
             <button id="rpgSoundBtn" class="rpg-sound-btn" type="button">Sound off</button>
           </div>
 
           <div class="rpg-quest rpg-panel">
             <small>Main Quest</small>
-            <h2>Start broke, train skills, land gigs, help players, and build your home after getting paid.</h2>
+            <h2 id="rpgQuestTitle">Start broke, train skills, land gigs, help players, and build your home after getting paid.</h2>
             <p>WASD move, click-to-walk, E interact, Space fight blockers, F greet players, Enter chat.</p>
+            <ul id="rpgQuestObjectives" class="rpg-quest-objectives"></ul>
             <div id="rpgTarget">Explore the map and find a job activity.</div>
           </div>
 
@@ -112,6 +120,16 @@
             <button id="rpgBuildBtn" type="button">Build Home</button>
             <button id="rpgAttackBtn" type="button">Attack</button>
             <button id="rpgCenterBtn" type="button">Center</button>
+            <button id="rpgUnstuckBtn" type="button">Unstuck</button>
+          </div>
+
+          <div class="rpg-hotbar-wrap">
+            <div class="rpg-player-bars">
+              <span>HP <i><b id="rpgHpBar"></b></i></span>
+              <span>XP <i><b id="rpgBottomXpBar"></b></i></span>
+            </div>
+            <div class="rpg-gold">Gold <b id="rpgGold">0</b></div>
+            <div id="rpgHotbar" class="rpg-hotbar rpg-panel"></div>
           </div>
 
           <div class="rpg-wheel rpg-panel">
@@ -119,6 +137,7 @@
             <button id="rpgBagBtn" type="button" title="Inventory">Bag</button>
             <button id="rpgGatherBtn" type="button" title="Use current tool">Tool</button>
             <button id="rpgStatsBtn" type="button" title="Stats">Stats</button>
+            <button id="rpgOutfitBtn" type="button" title="Outfit">Outfit</button>
             <button id="rpgMarketBtn" type="button" title="Marketplace">Market</button>
           </div>
 
@@ -165,7 +184,7 @@
       </main>
     </div>
 
-    <script src="/js/sidebar.js?v=20260613rpg6"></script>
-    <script type="module" src="/js/rpg.js?v=20260613rpg6"></script>
+    <script src="/js/sidebar.js?v=20260613rpg12"></script>
+    <script type="module" src="/js/rpg.js?v=20260613rpg12"></script>
   </body>
 </html>

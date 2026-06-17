@@ -256,6 +256,10 @@ function saveWalletSession(partial = {}) {
         : prev.address || ""
   };
   try {
+    if (!next.connected) {
+      localStorage.removeItem(WALLET_SESSION_KEY);
+      return;
+    }
     localStorage.setItem(WALLET_SESSION_KEY, JSON.stringify(next));
   } catch {
     // ignore storage write failures
@@ -541,14 +545,39 @@ function resolveWallet(choice = "phantom") {
   return wallets.find((w) => w.id === choice || w.key === choice) || wallets[0];
 }
 
+function clearWalletRuntimeState() {
+  state.provider = null;
+  state.signer = null;
+  state.address = "";
+  state.walletLabel = "";
+  state.walletKey = "";
+  state.chainType = "";
+  state.activeInjectedProvider = null;
+}
+
+async function disconnectProvider(provider) {
+  try {
+    await provider?.disconnect?.();
+  } catch {
+    // optional wallet API
+  }
+}
+
 export async function connectWallet(choice = "phantom", options = {}) {
   const silent = Boolean(options?.silent);
+  const forcePrompt = Boolean(options?.forcePrompt);
   const wallet = resolveWallet(choice || "phantom");
   if (!wallet?.provider) {
     throw new Error("No Phantom wallet detected. Install Phantom and refresh.");
   }
 
   const provider = wallet.provider;
+  if (!silent && forcePrompt) {
+    await disconnectProvider(provider);
+    clearWalletRuntimeState();
+    saveWalletSession({ connected: false, choice: "", address: "" });
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
   const response = await provider.connect?.({ onlyIfTrusted: silent });
   const publicKey = response?.publicKey || provider.publicKey;
   const address = publicKey?.toBase58?.() || String(publicKey || "");
@@ -576,18 +605,9 @@ export async function connectWallet(choice = "phantom", options = {}) {
 }
 
 export function disconnectWallet() {
-  try {
-    state.activeInjectedProvider?.disconnect?.();
-  } catch {
-    // optional wallet API
-  }
-  state.provider = null;
-  state.signer = null;
-  state.address = "";
-  state.walletLabel = "";
-  state.walletKey = "";
-  state.chainType = "";
-  state.activeInjectedProvider = null;
+  const provider = state.activeInjectedProvider || window.phantom?.solana || window.solana;
+  disconnectProvider(provider);
+  clearWalletRuntimeState();
   saveWalletSession({ connected: false, choice: "", address: "" });
 }
 

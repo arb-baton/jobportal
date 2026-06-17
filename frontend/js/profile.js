@@ -20,8 +20,8 @@ import {
   shortAddress,
   weiToUsd,
   walletState
-} from "./core.js?v=20260611walletmodal";
-import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260611walletmodal";
+} from "./core.js?v=20260616freshphantom";
+import { initWalletControls, initWalletHubMenu, setAlert, setWalletLabel, showCopyToast } from "./ui.js?v=20260616freshphantom";
 import { initCoinSearchOverlay, recordViewedLaunch } from "./searchModal.js?v=20260505a";
 import { initSupportWidget } from "./support.js?v=20260611phantomdirect";
 
