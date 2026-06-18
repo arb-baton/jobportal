@@ -2551,15 +2551,26 @@ function renderCorporateInterior(corp) {
   infoTitle.textContent = `${corp.name} Campus`;
   const pass = hasCorporatePass();
   const floors = ["Lobby", "Interview Room", "Hiring Manager", "Team Floor", "Rooftop"];
+  const interiorZones = [
+    { id: "reception", label: "Reception", x: 15, y: 68, kind: "talk", reward: "+8 networking XP" },
+    { id: "terminal", label: "Job App Terminal", x: 43, y: 66, kind: "terminal", reward: "Launch inside this box" },
+    { id: "arcade", label: "Pitch Arcade", x: 72, y: 64, kind: "game", reward: "+$40 + XP" },
+    { id: "whiteboard", label: "Whiteboard Challenge", x: 34, y: 32, kind: "game", reward: "+Job Proof" },
+    { id: "coffee", label: "Coffee Chat", x: 68, y: 28, kind: "talk", reward: "+pass progress" }
+  ];
   infoBody.innerHTML = `
     <div class="rpg-corporate-room">
       ${corp.photo ? `<figure class="rpg-reference-photo"><img src="${escapeHtml(corp.photo)}" alt="${escapeHtml(corp.name)} real-world reference" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('figure').style.display='none'"><figcaption>${escapeHtml(corp.note || `${corp.name} inspired campus`)}</figcaption></figure>` : ""}
-      <div class="rpg-room-stage" style="--corp:${escapeHtml(corp.accent)}">
-        <span class="rpg-room-player"></span>
-        <span class="rpg-room-desk"></span>
-        <span class="rpg-room-screen"></span>
-        <span class="rpg-room-plant one"></span>
-        <span class="rpg-room-plant two"></span>
+      <div class="rpg-interior-map" style="--corp:${escapeHtml(corp.accent)}">
+        <div class="rpg-interior-room lobby"><strong>${escapeHtml(corp.name)} Lobby</strong></div>
+        <div class="rpg-interior-room meeting">Meeting</div>
+        <div class="rpg-interior-room lab">Team Floor</div>
+        <div class="rpg-interior-desk main"></div>
+        <div class="rpg-interior-desk side"></div>
+        <span class="rpg-interior-npc recruiter">Recruiter</span>
+        <span class="rpg-interior-npc manager">Manager</span>
+        <span class="rpg-interior-player" id="rpgInteriorPlayer" style="left:48%;top:78%">${escapeHtml((state.player?.name || "You").slice(0, 1))}</span>
+        ${interiorZones.map((zone) => `<button class="rpg-interior-zone ${escapeHtml(zone.kind)}" type="button" data-interior-zone="${escapeHtml(zone.id)}" style="left:${zone.x}%;top:${zone.y}%"><b>${escapeHtml(zone.label)}</b><small>${escapeHtml(zone.reward)}</small></button>`).join("")}
       </div>
       <p>You are inside the ${escapeHtml(corp.name)} lobby. The lobby is open now; interview floors unlock with an Interview Pass, Corporate Pass, Job Proof, or level 3.</p>
       <div class="rpg-floor-list">
@@ -2569,12 +2580,15 @@ function renderCorporateInterior(corp) {
         }).join("")}
       </div>
       <div class="rpg-dialogue-actions">
-        <button type="button" data-corp-apply="1">Launch ${escapeHtml(corp.role)} job application</button>
+        <button type="button" data-corp-apply="1">Open in-lobby job application</button>
         <button type="button" data-corp-practice="1">${pass ? "Practice interview" : "Earn pass in lobby mini interview"}</button>
         <button type="button" data-dialogue-action="close">Leave building</button>
       </div>
     </div>
   `;
+  infoBody.querySelectorAll("[data-interior-zone]").forEach((button) => {
+    button.addEventListener("click", () => runInteriorZone(corp, button.dataset.interiorZone || "", button));
+  });
   infoBody.querySelectorAll("[data-floor]").forEach((button) => {
     button.addEventListener("click", () => {
       const floorName = button.querySelector("strong")?.textContent || "Floor";
@@ -2586,12 +2600,111 @@ function renderCorporateInterior(corp) {
     });
   });
   infoBody.querySelector("[data-corp-apply]")?.addEventListener("click", () => {
-    const url = `/create?from=rpg&company=${encodeURIComponent(corp.name)}&jobTitle=${encodeURIComponent(corp.role)}`;
-    window.location.href = url;
+    renderInlineJobApplication(corp);
   });
   infoBody.querySelector("[data-corp-practice]")?.addEventListener("click", () => startInterviewMiniGame(corp));
   infoBody.querySelector("[data-dialogue-action='close']")?.addEventListener("click", () => {
     if (infoPanel) infoPanel.hidden = true;
+  });
+}
+
+function runInteriorZone(corp, zoneId, button) {
+  const player = infoBody?.querySelector("#rpgInteriorPlayer");
+  if (player && button) {
+    player.style.left = button.style.left;
+    player.style.top = button.style.top;
+  }
+  const rewards = {
+    reception: { xp: 8, skill: "networking", skillXp: 8, cash: 5, label: "checked in" },
+    terminal: { xp: 0, label: "terminal" },
+    arcade: { xp: 24, cash: 40, skill: "sales", skillXp: 18, label: "pitch won" },
+    whiteboard: { xp: 30, cash: 25, skill: "coding", skillXp: 22, item: "jobProof", amount: 1, label: "+Job Proof" },
+    coffee: { xp: 18, cash: 20, skill: "networking", skillXp: 16, label: "coffee chat" }
+  };
+  if (zoneId === "terminal") {
+    renderInlineJobApplication(corp);
+    return;
+  }
+  const reward = rewards[zoneId] || rewards.reception;
+  addReward(reward);
+  if (zoneId === "coffee" && Number(state.skills.networking || 0) >= 40) awardCorporatePass(`${corp.name} lobby networking cleared. Corporate pass unlocked.`);
+  targetEl.textContent = `${corp.name}: ${reward.label}. ${reward.xp ? `+${reward.xp} XP` : ""}${reward.cash ? `, +$${reward.cash}` : ""}.`;
+  sound(zoneId === "arcade" || zoneId === "whiteboard" ? "activity" : "chat");
+}
+
+function renderInlineJobApplication(corp = corporateBuildings[0]) {
+  if (!infoPanel || !infoTitle || !infoBody) return;
+  infoPanel.hidden = false;
+  infoTitle.textContent = "In-Lobby Job Application";
+  const defaultTitle = corp?.role || "Remote Job";
+  infoBody.innerHTML = `
+    <form class="rpg-inline-application" id="rpgInlineApplication">
+      <div class="rpg-computer-screen">
+        <strong>GET ME A JOB OS</strong>
+        <span>${escapeHtml(corp.name)} embedded launch terminal</span>
+        <i></i>
+      </div>
+      <label>Job Title
+        <input name="title" maxlength="48" value="${escapeHtml(defaultTitle)}" />
+      </label>
+      <label>Job Token
+        <input name="token" value="getmeajob" disabled />
+      </label>
+      <label>Resume
+        <textarea name="resume" rows="5" placeholder="Paste your resume, skills, proof, links, and what kind of work you want."></textarea>
+      </label>
+      <div class="rpg-upload-sim">
+        <strong>Job app pic</strong>
+        <span>In-game terminal draft. Full Pump.fun wallet launch still uses the main launch backend, but this keeps the RPG flow inside the box.</span>
+      </div>
+      <div class="rpg-dialogue-actions">
+        <button type="submit">Save RPG job application</button>
+        <button type="button" data-launch-full="1">Use full wallet launch</button>
+        <button type="button" data-back-lobby="1">Back to lobby</button>
+      </div>
+    </form>
+  `;
+  infoBody.querySelector("#rpgInlineApplication")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const title = String(form.get("title") || defaultTitle).trim() || defaultTitle;
+    const resume = String(form.get("resume") || "").trim();
+    const draft = {
+      title,
+      token: "getmeajob",
+      company: corp.name,
+      role: corp.role,
+      resume,
+      createdAt: Date.now()
+    };
+    try {
+      const drafts = JSON.parse(localStorage.getItem("gmj:rpg-job-apps") || "[]");
+      drafts.unshift(draft);
+      localStorage.setItem("gmj:rpg-job-apps", JSON.stringify(drafts.slice(0, 20)));
+    } catch {
+      // Draft persistence is optional.
+    }
+    addReward({ xp: 35, cash: 60, skill: "sales", skillXp: 20, item: "jobProof", amount: 1, label: "job app saved" });
+    state.quest.objectives.job = true;
+    targetEl.textContent = `${title} saved inside RPG terminal. +35 XP, +$60, +1 Job Proof.`;
+    infoBody.innerHTML = `
+      <div class="rpg-pass-card">
+        <strong>${escapeHtml(title)} saved</strong>
+        <p>Your in-world job application draft was saved locally and counted as Job Proof. Continue the RPG flow here or use the full wallet launch when you are ready to publish on Pump.fun.</p>
+        <div class="rpg-dialogue-actions">
+          <button type="button" data-back-lobby="1">Back to ${escapeHtml(corp.name)} lobby</button>
+          <button type="button" data-launch-full="1">Use full wallet launch</button>
+        </div>
+      </div>
+    `;
+    infoBody.querySelector("[data-back-lobby]")?.addEventListener("click", () => renderCorporateInterior(corp));
+    infoBody.querySelector("[data-launch-full]")?.addEventListener("click", () => {
+      window.location.href = `/create?from=rpg&company=${encodeURIComponent(corp.name)}&jobTitle=${encodeURIComponent(title)}`;
+    });
+  });
+  infoBody.querySelector("[data-back-lobby]")?.addEventListener("click", () => renderCorporateInterior(corp));
+  infoBody.querySelector("[data-launch-full]")?.addEventListener("click", () => {
+    window.location.href = `/create?from=rpg&company=${encodeURIComponent(corp.name)}&jobTitle=${encodeURIComponent(defaultTitle)}`;
   });
 }
 
@@ -2621,7 +2734,7 @@ function renderJobComputer() {
   `;
   infoBody.querySelector("[data-computer-launch]")?.addEventListener("click", () => {
     const selected = corporateBuildings.find((corp) => corp.id === infoBody.querySelector("#rpgComputerCompany")?.value) || corporateBuildings[0];
-    window.location.href = `/create?from=rpg&company=${encodeURIComponent(selected.name)}&jobTitle=${encodeURIComponent(selected.role)}`;
+    renderInlineJobApplication(selected);
   });
   infoBody.querySelector("[data-computer-interview]")?.addEventListener("click", () => {
     const selected = corporateBuildings.find((corp) => corp.id === infoBody.querySelector("#rpgComputerCompany")?.value) || corporateBuildings[0];
@@ -2674,7 +2787,7 @@ function startInterviewMiniGame(corp = corporateBuildings[0]) {
       });
     });
     infoBody.querySelector("[data-launch-after]")?.addEventListener("click", () => {
-      window.location.href = `/create?from=rpg&company=${encodeURIComponent(corp.name)}&jobTitle=${encodeURIComponent(corp.role)}`;
+      renderInlineJobApplication(corp);
     });
     infoBody.querySelector("[data-dialogue-action='close']")?.addEventListener("click", () => renderJobComputer());
   };

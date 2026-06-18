@@ -13903,6 +13903,202 @@ button[disabled] {
   gap: 0.55rem;
 }
 
+.rpg-interior-map {
+  position: relative;
+  min-height: 360px;
+  border: 1px solid rgba(125, 242, 170, 0.32);
+  border-radius: 14px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.08) 25%, transparent 25%) 0 0 / 42px 42px,
+    linear-gradient(315deg, rgba(255,255,255,0.06) 25%, transparent 25%) 0 0 / 42px 42px,
+    radial-gradient(circle at 74% 20%, color-mix(in srgb, var(--corp, #7df2aa) 20%, transparent), transparent 30%),
+    #151817;
+  box-shadow: inset 0 0 0 999px rgba(0, 0, 0, 0.08);
+}
+
+.rpg-interior-room {
+  position: absolute;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: #d9ffe9;
+  font-weight: 1000;
+  font-size: 0.8rem;
+  display: grid;
+  place-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.rpg-interior-room.lobby {
+  left: 5%;
+  top: 48%;
+  width: 90%;
+  height: 42%;
+  border-radius: 12px;
+}
+
+.rpg-interior-room.meeting {
+  left: 8%;
+  top: 8%;
+  width: 38%;
+  height: 32%;
+  border-radius: 10px;
+}
+
+.rpg-interior-room.lab {
+  right: 8%;
+  top: 8%;
+  width: 38%;
+  height: 32%;
+  border-radius: 10px;
+}
+
+.rpg-interior-desk {
+  position: absolute;
+  height: 24px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #94633a, #5d3920);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.22);
+}
+
+.rpg-interior-desk.main {
+  left: 22%;
+  right: 22%;
+  top: 58%;
+}
+
+.rpg-interior-desk.side {
+  left: 16%;
+  width: 28%;
+  top: 24%;
+}
+
+.rpg-interior-player,
+.rpg-interior-npc,
+.rpg-interior-zone {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.rpg-interior-player {
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 46px;
+  border-radius: 14px 14px 8px 8px;
+  background: #7df2aa;
+  color: #07100a;
+  font-weight: 1000;
+  box-shadow: inset 0 -15px 0 rgba(0,0,0,0.2), 0 12px 24px rgba(0,0,0,0.26);
+  transition: left 260ms ease, top 260ms ease;
+}
+
+.rpg-interior-npc {
+  z-index: 2;
+  border: 1px solid rgba(125,242,170,0.32);
+  border-radius: 999px;
+  background: rgba(7, 8, 7, 0.72);
+  color: #d9ffe9;
+  padding: 0.28rem 0.48rem;
+  font-size: 0.68rem;
+  font-weight: 1000;
+}
+
+.rpg-interior-npc.recruiter {
+  left: 18%;
+  top: 58%;
+}
+
+.rpg-interior-npc.manager {
+  left: 72%;
+  top: 24%;
+}
+
+.rpg-interior-zone {
+  z-index: 3;
+  min-width: 108px;
+  border: 1px solid rgba(125,242,170,0.4);
+  border-radius: 10px;
+  background: rgba(8, 12, 10, 0.78);
+  color: #fff;
+  padding: 0.42rem 0.52rem;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.rpg-interior-zone b,
+.rpg-interior-zone small {
+  display: block;
+}
+
+.rpg-interior-zone b {
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+.rpg-interior-zone small {
+  color: #7df2aa;
+  font-size: 0.62rem;
+  margin-top: 0.18rem;
+  text-transform: none;
+}
+
+.rpg-interior-zone.terminal {
+  border-color: rgba(125,242,170,0.78);
+  background: linear-gradient(180deg, rgba(125,242,170,0.2), rgba(8,12,10,0.86));
+}
+
+.rpg-interior-zone.game {
+  border-color: rgba(255,209,102,0.58);
+}
+
+.rpg-inline-application {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.rpg-inline-application label {
+  display: grid;
+  gap: 0.36rem;
+  color: #f8fff9;
+  font-weight: 900;
+}
+
+.rpg-inline-application input,
+.rpg-inline-application textarea {
+  width: 100%;
+  border: 1px solid #30333a;
+  border-radius: 8px;
+  background: #070809;
+  color: #fff;
+  padding: 0.68rem 0.76rem;
+  font: inherit;
+}
+
+.rpg-inline-application input:disabled {
+  color: #7df2aa;
+  border-color: rgba(125,242,170,0.36);
+  background: #102316;
+}
+
+.rpg-upload-sim {
+  border: 1px dashed rgba(125,242,170,0.34);
+  border-radius: 10px;
+  background: #0b0f0d;
+  padding: 0.75rem;
+  color: #a8b3ad;
+}
+
+.rpg-upload-sim strong {
+  display: block;
+  color: #7df2aa;
+  margin-bottom: 0.25rem;
+}
+
 .rpg-floor-list button,
 .rpg-interview-prompts button,
 .rpg-computer-card label {
