@@ -13021,6 +13021,18 @@ button[disabled] {
     #82cfe7;
 }
 
+.orynth-feature-badge {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 0.75rem;
+}
+
+.orynth-feature-badge img {
+  display: block;
+  width: min(260px, 100%);
+  height: auto;
+}
+
 .rpg-canvas {
   position: absolute;
   inset: 0;
